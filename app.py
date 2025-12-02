@@ -460,12 +460,18 @@ def log_sent_message(phone: str, message: str, msg_type: str = "text"):
             "message": message,
             "direction": "outgoing",
             "message_type": msg_type,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
+            "follow_up_needed": False,
+            "notes": "",
+            "handled_by": "Dashboard User"
         }
-        requests.post(f"{API_BASE}/log_message", json=payload, timeout=10)
+        response = requests.post(f"{API_BASE}/log_message", json=payload, timeout=10)
+        response.raise_for_status()
+        return True
     except Exception as e:
         # Silently fail - don't disrupt the UI if logging fails
-        print(f"Failed to log message: {e}")
+        st.warning(f"Message sent but not logged in database: {e}")
+        return False
 
 
 # Fetch and filter contacts
@@ -668,6 +674,9 @@ with col2:
                     # Clear draft by deleting the key instead of setting to empty string
                     if draft_key in st.session_state:
                         del st.session_state[draft_key]
+                    # Wait a moment for the message to be logged
+                    import time
+                    time.sleep(0.5)
                     st.rerun()
         
         # Pagination controls
