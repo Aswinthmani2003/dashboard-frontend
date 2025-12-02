@@ -99,6 +99,9 @@ st.markdown("""
         gap: 15px;
         border-bottom: 1px solid #2a3942;
         margin-bottom: 0;
+        position: sticky;
+        top: 0;
+        z-index: 999;
     }
     
     .main-header h1 {
@@ -106,6 +109,7 @@ st.markdown("""
         margin: 0;
         font-size: 19px;
         font-weight: 400;
+        flex: 1;
     }
     
     .logo-img {
@@ -177,6 +181,8 @@ st.markdown("""
         display: flex;
         justify-content: space-between;
         align-items: center;
+        border: 1px solid #3b4a54;
+        border-radius: 8px;
     }
     
     .chat-header-info h3 {
@@ -259,10 +265,61 @@ st.markdown("""
     }
     
     /* Update section */
+    .update-section {
+        border: 1px solid #3b4a54;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 20px;
+        background-color: #111b21;
+    }
+    
     .update-section h3 {
         color: #e9edef !important;
         font-size: 16px !important;
         margin-bottom: 15px !important;
+    }
+    
+    .send-section {
+        border: 1px solid #3b4a54;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 20px;
+        margin-bottom: 20px;
+        background-color: #111b21;
+    }
+    
+    .send-section h3 {
+        color: #e9edef !important;
+        font-size: 16px !important;
+        margin-bottom: 15px !important;
+    }
+    
+    .chat-area {
+        border: 1px solid #3b4a54;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
+        background-color: #0d1418;
+        min-height: 300px;
+    }
+    
+    .pagination-section {
+        border: 1px solid #3b4a54;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
+        background-color: #111b21;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .pagination-info {
+        color: #8696a0;
+        font-size: 14px;
+        margin: 0;
+        text-align: center;
+        flex: 1;
     }
     
     /* Buttons */
@@ -319,9 +376,15 @@ st.markdown("""
         background: #3b4a54;
     }
     
-    /* Hide streamlit menu/footer but keep header (for sidebar toggle) */
+    /* Hide streamlit menu/footer and header */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
+    header {visibility: hidden;}
+    
+    /* Override streamlit's default padding for header */
+    .main .block-container {
+        padding-top: 0rem !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -595,7 +658,9 @@ with col2:
     if not conv:
         st.info("📭 No messages")
     else:
-        # Chat area
+        # Chat area with border
+        st.markdown('<div class="chat-area">', unsafe_allow_html=True)
+        
         for msg in conv:
             ts = datetime.fromisoformat(msg["timestamp"])
             direction = "user" if msg["direction"] in ["user", "incoming"] else "bot"
@@ -630,7 +695,35 @@ with col2:
             message_html += "</div></div>"
             st.markdown(message_html, unsafe_allow_html=True)
         
+        st.markdown('</div>', unsafe_allow_html=True)  # Close chat-area
+        
+        # Pagination controls with centered info
+        st.markdown('<div class="pagination-section">', unsafe_allow_html=True)
+        col_p1, col_p2, col_p3 = st.columns([1, 2, 1])
+
+        # Prev button – only disabled on first page
+        with col_p1:
+            prev_disabled = st.session_state.conv_offset == 0
+            if st.button("⬅️ Prev", disabled=prev_disabled):
+                st.session_state.conv_offset = max(0, st.session_state.conv_offset - CONV_LIMIT)
+                st.rerun()
+
+        # Info text in center
+        with col_p2:
+            start_idx = st.session_state.conv_offset + 1 if conv else 0
+            end_idx = st.session_state.conv_offset + len(conv)
+            st.markdown(f'<p class="pagination-info">Showing messages {start_idx}–{end_idx}</p>', unsafe_allow_html=True)
+
+        # Next button – always allowed, backend decides if more exist
+        with col_p3:
+            if st.button("Next ➡️"):
+                st.session_state.conv_offset += CONV_LIMIT
+                st.rerun()
+        
+        st.markdown('</div>', unsafe_allow_html=True)  # Close pagination-section
+        
         # --- Send Message section ---
+        st.markdown('<div class="send-section">', unsafe_allow_html=True)
         st.markdown("### ✉️ Send Message")
         col_s1, col_s2 = st.columns([3, 1])
 
@@ -679,31 +772,12 @@ with col2:
                     time.sleep(0.5)
                     st.rerun()
         
-        # Pagination controls
-        col_p1, col_p2, col_p3 = st.columns([1, 1, 3])
-
-        # Prev button – only disabled on first page
-        with col_p1:
-            prev_disabled = st.session_state.conv_offset == 0
-            if st.button("⬅️ Prev", disabled=prev_disabled):
-                st.session_state.conv_offset = max(0, st.session_state.conv_offset - CONV_LIMIT)
-                st.rerun()
-
-        # Next button – always allowed, backend decides if more exist
-        with col_p2:
-            if st.button("Next ➡️"):
-                st.session_state.conv_offset += CONV_LIMIT
-                st.rerun()
-
-        # Info text
-        with col_p3:
-            start_idx = st.session_state.conv_offset + 1 if conv else 0
-            end_idx = st.session_state.conv_offset + len(conv)
-            st.write(f"Showing messages {start_idx}–{end_idx}")
+        st.markdown('</div>', unsafe_allow_html=True)  # Close send-section
         
         # Update section
         last_msg = conv[-1]
         
+        st.markdown('<div class="update-section">', unsafe_allow_html=True)
         st.markdown("### 📝 Update Follow-up Status")
         
         col_u1, col_u2 = st.columns(2)
@@ -724,3 +798,5 @@ with col2:
                 st.rerun()
             else:
                 st.error(f"Error: {resp.text}")
+        
+        st.markdown('</div>', unsafe_allow_html=True)  # Close update-section
