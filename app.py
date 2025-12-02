@@ -6,6 +6,7 @@ from pathlib import Path
 import re
 
 API_BASE = "https://dashboard-backend-qqmi.onrender.com"
+MAKE_WEBHOOK_URL = st.secrets.get("make_webhook_url", "")  # set this in secrets.toml
 
 
 def check_password():
@@ -31,6 +32,7 @@ def check_password():
         st.error("❌ Wrong password")
         st.stop()
 
+
 # Page config
 st.set_page_config(
     page_title="WhatsApp Chat Inbox",
@@ -38,6 +40,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 check_password()
+
 
 # Function to load and encode logo
 def get_base64_logo():
@@ -419,6 +422,34 @@ def filter_messages(messages, date_filter, time_from, time_to):
     return filtered
 
 
+def send_whatsapp_message(phone: str, message_text: str,
+                          msg_type: str = "text",
+                          template_name: str | None = None) -> bool:
+    """Send message to Make.com webhook which will handle WhatsApp API."""
+    if not MAKE_WEBHOOK_URL:
+        st.error("Make webhook URL not configured (set 'make_webhook_url' in Streamlit secrets).")
+        return False
+
+    payload = {
+        "phone": phone,
+        "message": message_text,
+        "type": msg_type,  # 'text' or 'template'
+    }
+    if msg_type == "template" and template_name:
+        payload["template_name"] = template_name
+
+    try:
+        r = requests.post(MAKE_WEBHOOK_URL, json=payload, timeout=15)
+        if r.status_code in (200, 201, 202):
+            return True
+        else:
+            st.error(f"Send failed ({r.status_code}): {r.text}")
+            return False
+    except Exception as e:
+        st.error(f"Send error: {e}")
+        return False
+
+
 # Fetch and filter contacts
 contacts = fetch_contacts(only_fu)
 if search_phone:
@@ -437,7 +468,8 @@ if "selected_phone" not in st.session_state:
 if "conv_offset" not in st.session_state:
     st.session_state.conv_offset = 0
 
-CONV_LIMIT = 20
+CONV_LIMIT = 20  # recommended
+
 
 # Layout
 col1, col2 = st.columns([1, 2.5])
@@ -456,9 +488,12 @@ with col1:
             use_container_width=True,
             type="primary" if is_selected else "secondary"
         ):
-            # When switching contact, reset pagination
+            # When switching contact, reset pagination and draft
             st.session_state.selected_phone = phone
             st.session_state.conv_offset = 0
+            draft_key = f"new_msg_{phone}"
+            if draft_key in st.session_state:
+                del st.session_state[draft_key]
             st.rerun()
 
 with col2:
@@ -522,10 +557,8 @@ with col2:
             # Highlight search matches
             if search_query:
                 pattern = re.escape(search_query)
-                
                 def repl(m):
                     return f"<span class='highlight'>{m.group(0)}</span>"
-                
                 display_text = re.sub(pattern, repl, display_text, flags=re.IGNORECASE)
             
             # Replace newlines with <br>
@@ -548,18 +581,67 @@ with col2:
             message_html += "</div></div>"
             st.markdown(message_html, unsafe_allow_html=True)
         
+        # --- NEW: Send Message section ---
+        st.markdown("### ✉️ Send Message")
+        col_s1, col_s2 = st.columns([3, 1])
+
+        draft_key = f"new_msg_{phone}"
+        type_key = f"msg_type_{phone}"
+        tmpl_key = f"tmpl_{phone}"
+
+        with col_s1:
+            new_msg = st.text_area(
+                "Message",
+                value=st.session_state.get(draft_key, ""),
+                placeholder="Type a WhatsApp message to send...",
+                key=draft_key,
+                height=80
+            )
+
+        with col_s2:
+            msg_type_label = st.radio(
+                "Type",
+                ["Text", "Template"],
+                key=type_key
+            )
+            template_name = None
+            if msg_type_label == "Template":
+                template_name = st.text_input(
+                    "Template name",
+                    placeholder="e.g. sip_followup_1",
+                    key=tmpl_key
+                )
+
+        if st.button("📨 Send via WhatsApp", use_container_width=True, key=f"send_{phone}"):
+            msg_clean = (new_msg or "").strip()
+            if not msg_clean:
+                st.warning("Message cannot be empty.")
+            else:
+                msg_type = "template" if msg_type_label == "Template" else "text"
+                ok = send_whatsapp_message(phone, msg_clean, msg_type, template_name)
+                if ok:
+                    st.success("Message sent ✅")
+                    # Clear draft
+                    st.session_state[draft_key] = ""
+                    st.rerun()
+        
         # Pagination controls
         col_p1, col_p2, col_p3 = st.columns([1, 1, 3])
+
+        # Prev button – only disabled on first page
         with col_p1:
-            if st.button("⬅️ Prev", disabled=st.session_state.conv_offset == 0):
+            prev_disabled = st.session_state.conv_offset == 0
+            if st.button("⬅️ Prev", disabled=prev_disabled):
                 st.session_state.conv_offset = max(0, st.session_state.conv_offset - CONV_LIMIT)
                 st.rerun()
+
+        # Next button – always allowed, backend decides if more exist
         with col_p2:
-            # If we got less than limit messages, assume it's the last page
-            is_last_page = len(conv) < CONV_LIMIT
-            if st.button("Next ➡️", disabled=is_last_page):
+            if st.button("Next ➡️"):
                 st.session_state.conv_offset += CONV_LIMIT
                 st.rerun()
+
+        # Info text
         with col_p3:
             start_idx = st.session_state.conv_offset + 1 if conv else 0
             end_idx = st.session_state.conv_offset + len(conv)
