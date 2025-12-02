@@ -300,7 +300,7 @@ st.markdown("""
         padding: 15px;
         margin-bottom: 20px;
         background-color: #0d1418;
-        min-height: 300px;
+        min-height: 10px;
     }
     
     .pagination-section {
@@ -800,3 +800,4 @@ with col2:
                 st.error(f"Error: {resp.text}")
         
         st.markdown('</div>', unsafe_allow_html=True)  # Close update-section
+
