@@ -493,6 +493,7 @@ with col1:
             st.session_state.conv_offset = 0
             draft_key = f"new_msg_{phone}"
             if draft_key in st.session_state:
+                # Delete the key instead of setting to empty string
                 del st.session_state[draft_key]
             st.rerun()
 
@@ -581,7 +582,7 @@ with col2:
             message_html += "</div></div>"
             st.markdown(message_html, unsafe_allow_html=True)
         
-        # --- NEW: Send Message section ---
+        # --- Send Message section ---
         st.markdown("### ✉️ Send Message")
         col_s1, col_s2 = st.columns([3, 1])
 
@@ -590,6 +591,7 @@ with col2:
         tmpl_key = f"tmpl_{phone}"
 
         with col_s1:
+            # Use value parameter with get() to handle missing key gracefully
             new_msg = st.text_area(
                 "Message",
                 value=st.session_state.get(draft_key, ""),
@@ -621,8 +623,9 @@ with col2:
                 ok = send_whatsapp_message(phone, msg_clean, msg_type, template_name)
                 if ok:
                     st.success("Message sent ✅")
-                    # Clear draft
-                    st.session_state[draft_key] = ""
+                    # Clear draft by deleting the key instead of setting to empty string
+                    if draft_key in st.session_state:
+                        del st.session_state[draft_key]
                     st.rerun()
         
         # Pagination controls
