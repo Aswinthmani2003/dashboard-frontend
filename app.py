@@ -6,12 +6,37 @@ from pathlib import Path
 
 API_BASE = "https://dashboard-backend-qqmi.onrender.com"
 
+
+def check_password():
+    """Simple password gate using Streamlit secrets"""
+
+    def password_entered():
+        """Checks whether the password entered by the user is correct."""
+        if st.session_state["password"] == st.secrets["dashboard_password"]:
+            st.session_state["password_correct"] = True
+            # Don't store the password
+            del st.session_state["password"]
+        else:
+            st.session_state["password_correct"] = False
+
+    if "password_correct" not in st.session_state:
+        # First run, show input
+        st.text_input("Password", type="password", on_change=password_entered, key="password")
+        st.stop()
+
+    elif not st.session_state["password_correct"]:
+        # Wrong password, show input + error
+        st.text_input("Password", type="password", on_change=password_entered, key="password")
+        st.error("❌ Wrong password")
+        st.stop()
+
 # Page config
 st.set_page_config(
     page_title="WhatsApp Chat Inbox",
     layout="wide",
     initial_sidebar_state="expanded"
 )
+check_password()
 
 # Function to load and encode logo
 def get_base64_logo():
