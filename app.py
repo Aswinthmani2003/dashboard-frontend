@@ -441,6 +441,8 @@ def send_whatsapp_message(phone: str, message_text: str,
     try:
         r = requests.post(MAKE_WEBHOOK_URL, json=payload, timeout=15)
         if r.status_code in (200, 201, 202):
+            # Log the sent message to the backend database
+            log_sent_message(phone, message_text, msg_type)
             return True
         else:
             st.error(f"Send failed ({r.status_code}): {r.text}")
@@ -448,6 +450,22 @@ def send_whatsapp_message(phone: str, message_text: str,
     except Exception as e:
         st.error(f"Send error: {e}")
         return False
+
+
+def log_sent_message(phone: str, message: str, msg_type: str = "text"):
+    """Log sent message to backend database"""
+    try:
+        payload = {
+            "phone": phone,
+            "message": message,
+            "direction": "outgoing",
+            "message_type": msg_type,
+            "timestamp": datetime.now().isoformat()
+        }
+        requests.post(f"{API_BASE}/log_message", json=payload, timeout=10)
+    except Exception as e:
+        # Silently fail - don't disrupt the UI if logging fails
+        print(f"Failed to log message: {e}")
 
 
 # Fetch and filter contacts
@@ -467,6 +485,12 @@ if "selected_phone" not in st.session_state:
 
 if "conv_offset" not in st.session_state:
     st.session_state.conv_offset = 0
+
+if "last_message_count" not in st.session_state:
+    st.session_state.last_message_count = {}
+
+if "auto_refresh" not in st.session_state:
+    st.session_state.auto_refresh = True
 
 CONV_LIMIT = 20  # recommended
 
@@ -505,6 +529,24 @@ with col2:
         st.stop()
     
     client_name = selected["client_name"] or phone
+    
+    # Auto-refresh toggle and logic
+    col_toggle1, col_toggle2 = st.columns([3, 1])
+    with col_toggle1:
+        pass
+    with col_toggle2:
+        auto_refresh = st.checkbox("🔄 Auto-refresh", value=st.session_state.auto_refresh, key="auto_refresh_toggle")
+        st.session_state.auto_refresh = auto_refresh
+    
+    # Auto-refresh script - checks for new messages every 5 seconds
+    if st.session_state.auto_refresh:
+        st.markdown("""
+        <script>
+            setTimeout(function() {
+                window.parent.location.reload();
+            }, 5000);
+        </script>
+        """, unsafe_allow_html=True)
     
     # Chat header + delete
     col_h1, col_h2 = st.columns([6, 1])
