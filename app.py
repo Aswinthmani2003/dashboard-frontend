@@ -3,6 +3,7 @@ import requests
 from datetime import datetime, date, time
 import base64
 from pathlib import Path
+import re
 
 API_BASE = "https://dashboard-backend-qqmi.onrender.com"
 
@@ -47,6 +48,7 @@ def get_base64_logo():
             data = f.read()
         return base64.b64encode(data).decode()
     return None
+
 
 # Custom CSS for authentic WhatsApp styling
 st.markdown("""
@@ -167,7 +169,7 @@ st.markdown("""
     .chat-header {
         background: #202c33;
         padding: 10px 20px;
-        margin-bottom: 20px;
+        margin-bottom: 10px;
         border-bottom: 1px solid #2a3942;
         display: flex;
         justify-content: space-between;
@@ -185,6 +187,12 @@ st.markdown("""
         color: #8696a0;
         margin: 0;
         font-size: 13px;
+    }
+    
+    .unread-badge {
+        color: #ff3b30;
+        font-size: 13px;
+        margin: 0 0 10px 20px;
     }
     
     /* Message container */
@@ -240,8 +248,14 @@ st.markdown("""
         margin-top: 4px;
     }
     
-    /* Update section */
+    /* Highlight for search matches */
+    .highlight {
+        background-color: #86745f;
+        padding: 0 1px;
+        border-radius: 2px;
+    }
     
+    /* Update section */
     .update-section h3 {
         color: #e9edef !important;
         font-size: 16px !important;
@@ -302,10 +316,9 @@ st.markdown("""
         background: #3b4a54;
     }
     
-    /* Hide streamlit elements */
+    /* Hide streamlit menu/footer but keep header (for sidebar toggle) */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    header {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -349,6 +362,7 @@ else:
 st.sidebar.subheader("🔴 Follow-up")
 only_fu = st.sidebar.checkbox("Show only follow-up clients")
 
+
 # Helper functions
 def fetch_contacts(only_follow_up: bool):
     try:
@@ -359,14 +373,19 @@ def fetch_contacts(only_follow_up: bool):
         st.error(f"Error: {e}")
         return []
 
-def fetch_conversation(phone: str):
+
+def fetch_conversation(phone: str, limit: int = 50, offset: int = 0):
     try:
-        r = requests.get(f"{API_BASE}/conversation/{phone}")
+        r = requests.get(
+            f"{API_BASE}/conversation/{phone}",
+            params={"limit": limit, "offset": offset}
+        )
         r.raise_for_status()
         return r.json()
     except Exception as e:
         st.error(f"Error: {e}")
         return []
+
 
 def delete_conversation(phone: str):
     try:
@@ -375,12 +394,14 @@ def delete_conversation(phone: str):
     except:
         return False
 
+
 def delete_message(msg_id: int):
     try:
         r = requests.delete(f"{API_BASE}/message/{msg_id}")
         return r.status_code == 200
     except:
         return False
+
 
 def filter_messages(messages, date_filter, time_from, time_to):
     if not date_filter and not time_from:
@@ -397,6 +418,7 @@ def filter_messages(messages, date_filter, time_from, time_to):
         filtered.append(msg)
     return filtered
 
+
 # Fetch and filter contacts
 contacts = fetch_contacts(only_fu)
 if search_phone:
@@ -412,6 +434,11 @@ if not contacts:
 if "selected_phone" not in st.session_state:
     st.session_state.selected_phone = contacts[0]["phone"]
 
+if "conv_offset" not in st.session_state:
+    st.session_state.conv_offset = 0
+
+CONV_LIMIT = 20
+
 # Layout
 col1, col2 = st.columns([1, 2.5])
 
@@ -421,7 +448,7 @@ with col1:
         client_name = c["client_name"] or "Unknown"
         phone = c["phone"]
         is_selected = st.session_state.selected_phone == phone
-        fu_indicator = "🔴 " if c["follow_up_open"] else ""
+        fu_indicator = "🔴 " if c.get("follow_up_open") else ""
         
         if st.button(
             f"{fu_indicator}{client_name}",
@@ -429,7 +456,9 @@ with col1:
             use_container_width=True,
             type="primary" if is_selected else "secondary"
         ):
+            # When switching contact, reset pagination
             st.session_state.selected_phone = phone
+            st.session_state.conv_offset = 0
             st.rerun()
 
 with col2:
@@ -441,7 +470,7 @@ with col2:
     
     client_name = selected["client_name"] or phone
     
-    # Chat header
+    # Chat header + delete
     col_h1, col_h2 = st.columns([6, 1])
     with col_h1:
         st.markdown(f"""
@@ -463,23 +492,49 @@ with col2:
                 st.session_state.confirm_del = True
                 st.warning("Click again")
     
-    # Fetch messages
-    conv = fetch_conversation(phone)
+    # Search inside conversation
+    search_query = st.text_input(
+        "Search in this chat",
+        placeholder="Type to search messages...",
+        key="search_conv"
+    )
+    
+    # Fetch messages with pagination
+    conv = fetch_conversation(phone, limit=CONV_LIMIT, offset=st.session_state.conv_offset)
     conv = filter_messages(conv, date_filter, time_from, time_to)
+    
+    # Unread badge (based on follow_up_needed in current page)
+    unread_count = sum(1 for m in conv if m.get("follow_up_needed"))
+    if unread_count > 0:
+        st.markdown(f"<p class='unread-badge'>🔴 {unread_count} unread messages</p>", unsafe_allow_html=True)
     
     if not conv:
         st.info("📭 No messages")
     else:
         # Chat area
-        
         for msg in conv:
             ts = datetime.fromisoformat(msg["timestamp"])
             direction = "user" if msg["direction"] in ["user", "incoming"] else "bot"
             
+            raw_text = msg["message"] or ""
+            display_text = raw_text
+            
+            # Highlight search matches
+            if search_query:
+                pattern = re.escape(search_query)
+                
+                def repl(m):
+                    return f"<span class='highlight'>{m.group(0)}</span>"
+                
+                display_text = re.sub(pattern, repl, display_text, flags=re.IGNORECASE)
+            
+            # Replace newlines with <br>
+            display_text = display_text.replace("\n", "<br>")
+            
             message_html = f"""
             <div class="message-row {direction}">
                 <div class="message-bubble {direction}">
-                    <div class="message-text">{msg["message"]}</div>
+                    <div class="message-text">{display_text}</div>
                     <div class="message-time">{ts.strftime("%H:%M")}</div>
             """
             
@@ -493,17 +548,32 @@ with col2:
             message_html += "</div></div>"
             st.markdown(message_html, unsafe_allow_html=True)
         
-        st.markdown('</div>', unsafe_allow_html=True)
+        # Pagination controls
+        col_p1, col_p2, col_p3 = st.columns([1, 1, 3])
+        with col_p1:
+            if st.button("⬅️ Prev", disabled=st.session_state.conv_offset == 0):
+                st.session_state.conv_offset = max(0, st.session_state.conv_offset - CONV_LIMIT)
+                st.rerun()
+        with col_p2:
+            # If we got less than limit messages, assume it's the last page
+            is_last_page = len(conv) < CONV_LIMIT
+            if st.button("Next ➡️", disabled=is_last_page):
+                st.session_state.conv_offset += CONV_LIMIT
+                st.rerun()
+        with col_p3:
+            start_idx = st.session_state.conv_offset + 1 if conv else 0
+            end_idx = st.session_state.conv_offset + len(conv)
+            st.write(f"Showing messages {start_idx}–{end_idx}")
         
         # Update section
         last_msg = conv[-1]
         
         st.markdown("### 📝 Update Follow-up Status")
         
-        col1, col2 = st.columns(2)
-        with col1:
+        col_u1, col_u2 = st.columns(2)
+        with col_u1:
             fu_flag = st.checkbox("🔴 Follow-up needed", value=last_msg.get("follow_up_needed", False))
-        with col2:
+        with col_u2:
             handler = st.text_input("👤 Handled by", value=last_msg.get("handled_by") or "")
         
         notes = st.text_area("📝 Notes", value=last_msg.get("notes") or "")
@@ -518,5 +588,3 @@ with col2:
                 st.rerun()
             else:
                 st.error(f"Error: {resp.text}")
-        
-        st.markdown('</div>', unsafe_allow_html=True)
