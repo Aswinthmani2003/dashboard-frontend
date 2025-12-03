@@ -41,6 +41,9 @@ st.set_page_config(
 )
 check_password()
 
+# Initialize theme in session state
+if "theme" not in st.session_state:
+    st.session_state.theme = "dark"  # default to dark mode
 
 # Function to load and encode logo
 def get_base64_logo():
@@ -52,341 +55,699 @@ def get_base64_logo():
         return base64.b64encode(data).decode()
     return None
 
+# Function to get CSS based on theme
+def get_css(theme):
+    if theme == "dark":
+        return """
+        <style>
+            /* Global dark theme */
+            .main {
+                background-color: #0d1418;
+                padding: 0 !important;
+            }
+            
+            /* Remove default padding */
+            .block-container {
+                padding-top: 0 !important;
+                padding-bottom: 0 !important;
+                max-width: 100% !important;
+            }
+            
+            /* Sidebar styling */
+            [data-testid="stSidebar"] {
+                background-color: #111b21;
+                border-right: 1px solid #2a3942;
+            }
+            
+            [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, 
+            [data-testid="stSidebar"] h3, [data-testid="stSidebar"] h4 {
+                color: #e9edef !important;
+            }
+            
+            [data-testid="stSidebar"] label {
+                color: #8696a0 !important;
+            }
+            
+            [data-testid="stSidebar"] input {
+                background-color: #2a3942 !important;
+                color: #e9edef !important;
+                border: 1px solid #3b4a54 !important;
+            }
+            
+            /* Header */
+            .main-header {
+                background: #202c33;
+                padding: 15px 20px;
+                display: flex;
+                align-items: center;
+                gap: 15px;
+                border-bottom: 1px solid #2a3942;
+                margin-bottom: 0;
+                position: sticky;
+                top: 0;
+                z-index: 999;
+            }
+            
+            .main-header h1 {
+                color: #e9edef;
+                margin: 0;
+                font-size: 19px;
+                font-weight: 400;
+                flex: 1;
+            }
+            
+            .logo-img {
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                object-fit: cover;
+            }
+            
+            /* Contact list */
+            .contact-card {
+                background-color: #111b21;
+                padding: 12px 16px;
+                cursor: pointer;
+                border-bottom: 1px solid #2a3942;
+                transition: background-color 0.2s;
+                position: relative;
+            }
+            
+            .contact-card:hover {
+                background-color: #202c33;
+            }
+            
+            .contact-card.selected {
+                background-color: #2a3942;
+            }
+            
+            .contact-name {
+                color: #e9edef;
+                font-size: 16px;
+                font-weight: 400;
+                margin-bottom: 2px;
+            }
+            
+            .contact-phone {
+                color: #667781;
+                font-size: 13px;
+                margin-bottom: 3px;
+            }
+            
+            .contact-preview {
+                color: #8696a0;
+                font-size: 14px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            
+            .contact-time {
+                position: absolute;
+                top: 12px;
+                right: 16px;
+                color: #8696a0;
+                font-size: 12px;
+            }
+            
+            .follow-up-dot {
+                color: #ff3b30;
+                font-weight: bold;
+                margin-right: 5px;
+            }
+            
+            /* Chat header */
+            .chat-header {
+                background: #202c33;
+                padding: 10px 20px;
+                margin-bottom: 10px;
+                border-bottom: 1px solid #2a3942;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border: 1px solid #3b4a54;
+                border-radius: 8px;
+            }
+            
+            .chat-header-info h3 {
+                color: #e9edef;
+                margin: 0;
+                font-size: 16px;
+                font-weight: 400;
+            }
+            
+            .chat-header-info p {
+                color: #8696a0;
+                margin: 0;
+                font-size: 13px;
+            }
+            
+            .unread-badge {
+                color: #ff3b30;
+                font-size: 13px;
+                margin: 0 0 10px 20px;
+            }
+            
+            /* Message container */
+            .message-row {
+                display: flex;
+                margin-bottom: 12px;
+                clear: both;
+            }
+            
+            .message-row.user {
+                justify-content: flex-start;
+            }
+            
+            .message-row.bot {
+                justify-content: flex-end;
+            }
+            
+            /* Message bubble */
+            .message-bubble {
+                max-width: 65%;
+                padding: 8px 12px 8px 12px;
+                border-radius: 8px;
+                position: relative;
+                box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
+            }
+            
+            .message-bubble.user {
+                background-color: #202c33;
+            }
+            
+            .message-bubble.bot {
+                background-color: #005c4b;
+            }
+            
+            .message-text {
+                color: #e9edef;
+                font-size: 14.2px;
+                line-height: 19px;
+                margin-bottom: 4px;
+                word-wrap: break-word;
+            }
+            
+            .message-time {
+                color: #8696a0;
+                font-size: 11px;
+                text-align: right;
+                margin-top: 4px;
+            }
+            
+            .message-meta {
+                color: #8696a0;
+                font-size: 11px;
+                margin-top: 4px;
+            }
+            
+            /* Highlight for search matches */
+            .highlight {
+                background-color: #86745f;
+                padding: 0 1px;
+                border-radius: 2px;
+            }
+            
+            /* Update section */
+            .update-section {
+                border: 1px solid #3b4a54;
+                border-radius: 8px;
+                padding: 15px;
+                margin-top: 20px;
+                background-color: #111b21;
+            }
+            
+            .update-section h3 {
+                color: #e9edef !important;
+                font-size: 16px !important;
+                margin-bottom: 15px !important;
+            }
+            
+            .send-section {
+                border: 1px solid #3b4a54;
+                border-radius: 8px;
+                padding: 15px;
+                margin-top: 20px;
+                margin-bottom: 20px;
+                background-color: #111b21;
+            }
+            
+            .send-section h3 {
+                color: #e9edef !important;
+                font-size: 16px !important;
+                margin-bottom: 15px !important;
+            }
+            
+            .chat-area {
+                border: 1px solid #3b4a54;
+                border-radius: 8px;
+                padding: 15px;
+                margin-bottom: 20px;
+                background-color: #0d1418;
+                min-height: 1px;
+            }
+            
+            .pagination-section {
+                border: 1px solid #3b4a54;
+                border-radius: 8px;
+                padding: 15px;
+                margin-bottom: 20px;
+                background-color: #111b21;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+            
+            .pagination-info {
+                color: #8696a0;
+                font-size: 14px;
+                margin: 0;
+                text-align: center;
+                flex: 1;
+            }
+            
+            /* Buttons */
+            .stButton > button {
+                background-color: #00a884 !important;
+                color: white !important;
+                border: none !important;
+                font-weight: 500 !important;
+            }
+            
+            .stButton > button:hover {
+                background-color: #06cf9c !important;
+            }
+            
+            .delete-btn {
+                background-color: #dc3545 !important;
+                padding: 4px 8px !important;
+                font-size: 11px !important;
+                border-radius: 4px !important;
+                color: white !important;
+                border: none !important;
+                cursor: pointer;
+                margin-top: 4px;
+            }
+            
+            /* Input fields */
+            .stTextInput input, .stTextArea textarea {
+                background-color: #2a3942 !important;
+                color: #e9edef !important;
+                border: 1px solid #3b4a54 !important;
+            }
+            
+            /* Checkbox */
+            [data-testid="stCheckbox"] label {
+                color: #e9edef !important;
+            }
+            
+            /* Selectbox */
+            .stSelectbox label {
+                color: #e9edef !important;
+            }
+            
+            /* Radio buttons */
+            .stRadio label {
+                color: #e9edef !important;
+            }
+            
+            /* Scrollbar */
+            ::-webkit-scrollbar {
+                width: 6px;
+                height: 6px;
+            }
+            
+            ::-webkit-scrollbar-track {
+                background: #0d1418;
+            }
+            
+            ::-webkit-scrollbar-thumb {
+                background: #2a3942;
+                border-radius: 3px;
+            }
+            
+            ::-webkit-scrollbar-thumb:hover {
+                background: #3b4a54;
+            }
+            
+            /* Hide streamlit menu/footer and header */
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            
+            /* Override streamlit's default padding for header */
+            .main .block-container {
+                padding-top: 0rem !important;
+            }
+        </style>
+        """
+    else:  # light theme
+        return """
+        <style>
+            /* Global light theme */
+            .main {
+                background-color: #ffffff;
+                padding: 0 !important;
+            }
+            
+            /* Remove default padding */
+            .block-container {
+                padding-top: 0 !important;
+                padding-bottom: 0 !important;
+                max-width: 100% !important;
+            }
+            
+            /* Sidebar styling */
+            [data-testid="stSidebar"] {
+                background-color: #f8f9fa;
+                border-right: 1px solid #dddfe2;
+            }
+            
+            [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, 
+            [data-testid="stSidebar"] h3, [data-testid="stSidebar"] h4 {
+                color: #1c1e21 !important;
+            }
+            
+            [data-testid="stSidebar"] label {
+                color: #65676b !important;
+            }
+            
+            [data-testid="stSidebar"] input {
+                background-color: #ffffff !important;
+                color: #1c1e21 !important;
+                border: 1px solid #ccd0d5 !important;
+            }
+            
+            /* Header */
+            .main-header {
+                background: #f0f2f5;
+                padding: 15px 20px;
+                display: flex;
+                align-items: center;
+                gap: 15px;
+                border-bottom: 1px solid #dddfe2;
+                margin-bottom: 0;
+                position: sticky;
+                top: 0;
+                z-index: 999;
+            }
+            
+            .main-header h1 {
+                color: #1c1e21;
+                margin: 0;
+                font-size: 19px;
+                font-weight: 400;
+                flex: 1;
+            }
+            
+            .logo-img {
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                object-fit: cover;
+            }
+            
+            /* Contact list */
+            .contact-card {
+                background-color: #ffffff;
+                padding: 12px 16px;
+                cursor: pointer;
+                border-bottom: 1px solid #dddfe2;
+                transition: background-color 0.2s;
+                position: relative;
+            }
+            
+            .contact-card:hover {
+                background-color: #f0f2f5;
+            }
+            
+            .contact-card.selected {
+                background-color: #e4e6eb;
+            }
+            
+            .contact-name {
+                color: #1c1e21;
+                font-size: 16px;
+                font-weight: 400;
+                margin-bottom: 2px;
+            }
+            
+            .contact-phone {
+                color: #65676b;
+                font-size: 13px;
+                margin-bottom: 3px;
+            }
+            
+            .contact-preview {
+                color: #65676b;
+                font-size: 14px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            
+            .contact-time {
+                position: absolute;
+                top: 12px;
+                right: 16px;
+                color: #65676b;
+                font-size: 12px;
+            }
+            
+            .follow-up-dot {
+                color: #ff3b30;
+                font-weight: bold;
+                margin-right: 5px;
+            }
+            
+            /* Chat header */
+            .chat-header {
+                background: #f0f2f5;
+                padding: 10px 20px;
+                margin-bottom: 10px;
+                border-bottom: 1px solid #dddfe2;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border: 1px solid #ccd0d5;
+                border-radius: 8px;
+            }
+            
+            .chat-header-info h3 {
+                color: #1c1e21;
+                margin: 0;
+                font-size: 16px;
+                font-weight: 400;
+            }
+            
+            .chat-header-info p {
+                color: #65676b;
+                margin: 0;
+                font-size: 13px;
+            }
+            
+            .unread-badge {
+                color: #ff3b30;
+                font-size: 13px;
+                margin: 0 0 10px 20px;
+            }
+            
+            /* Message container */
+            .message-row {
+                display: flex;
+                margin-bottom: 12px;
+                clear: both;
+            }
+            
+            .message-row.user {
+                justify-content: flex-start;
+            }
+            
+            .message-row.bot {
+                justify-content: flex-end;
+            }
+            
+            /* Message bubble */
+            .message-bubble {
+                max-width: 65%;
+                padding: 8px 12px 8px 12px;
+                border-radius: 8px;
+                position: relative;
+                box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
+            }
+            
+            .message-bubble.user {
+                background-color: #f0f2f5;
+            }
+            
+            .message-bubble.bot {
+                background-color: #0084ff;
+            }
+            
+            .message-text {
+                color: #1c1e21;
+                font-size: 14.2px;
+                line-height: 19px;
+                margin-bottom: 4px;
+                word-wrap: break-word;
+            }
+            
+            .message-time {
+                color: #65676b;
+                font-size: 11px;
+                text-align: right;
+                margin-top: 4px;
+            }
+            
+            .message-meta {
+                color: #65676b;
+                font-size: 11px;
+                margin-top: 4px;
+            }
+            
+            /* Highlight for search matches */
+            .highlight {
+                background-color: #ffd700;
+                padding: 0 1px;
+                border-radius: 2px;
+            }
+            
+            /* Update section */
+            .update-section {
+                border: 1px solid #ccd0d5;
+                border-radius: 8px;
+                padding: 15px;
+                margin-top: 20px;
+                background-color: #ffffff;
+            }
+            
+            .update-section h3 {
+                color: #1c1e21 !important;
+                font-size: 16px !important;
+                margin-bottom: 15px !important;
+            }
+            
+            .send-section {
+                border: 1px solid #ccd0d5;
+                border-radius: 8px;
+                padding: 15px;
+                margin-top: 20px;
+                margin-bottom: 20px;
+                background-color: #ffffff;
+            }
+            
+            .send-section h3 {
+                color: #1c1e21 !important;
+                font-size: 16px !important;
+                margin-bottom: 15px !important;
+            }
+            
+            .chat-area {
+                border: 1px solid #ccd0d5;
+                border-radius: 8px;
+                padding: 15px;
+                margin-bottom: 20px;
+                background-color: #ffffff;
+                min-height: 1px;
+            }
+            
+            .pagination-section {
+                border: 1px solid #ccd0d5;
+                border-radius: 8px;
+                padding: 15px;
+                margin-bottom: 20px;
+                background-color: #ffffff;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+            
+            .pagination-info {
+                color: #65676b;
+                font-size: 14px;
+                margin: 0;
+                text-align: center;
+                flex: 1;
+            }
+            
+            /* Buttons */
+            .stButton > button {
+                background-color: #0084ff !important;
+                color: white !important;
+                border: none !important;
+                font-weight: 500 !important;
+            }
+            
+            .stButton > button:hover {
+                background-color: #0073e6 !important;
+            }
+            
+            .delete-btn {
+                background-color: #dc3545 !important;
+                padding: 4px 8px !important;
+                font-size: 11px !important;
+                border-radius: 4px !important;
+                color: white !important;
+                border: none !important;
+                cursor: pointer;
+                margin-top: 4px;
+            }
+            
+            /* Input fields */
+            .stTextInput input, .stTextArea textarea {
+                background-color: #ffffff !important;
+                color: #1c1e21 !important;
+                border: 1px solid #ccd0d5 !important;
+            }
+            
+            /* Checkbox */
+            [data-testid="stCheckbox"] label {
+                color: #1c1e21 !important;
+            }
+            
+            /* Selectbox */
+            .stSelectbox label {
+                color: #1c1e21 !important;
+            }
+            
+            /* Radio buttons */
+            .stRadio label {
+                color: #1c1e21 !important;
+            }
+            
+            /* Scrollbar */
+            ::-webkit-scrollbar {
+                width: 6px;
+                height: 6px;
+            }
+            
+            ::-webkit-scrollbar-track {
+                background: #f0f2f5;
+            }
+            
+            ::-webkit-scrollbar-thumb {
+                background: #aeb5bb;
+                border-radius: 3px;
+            }
+            
+            ::-webkit-scrollbar-thumb:hover {
+                background: #ccd0d5;
+            }
+            
+            /* Hide streamlit menu/footer and header */
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            
+            /* Override streamlit's default padding for header */
+            .main .block-container {
+                padding-top: 0rem !important;
+            }
+        </style>
+        """
 
-# Custom CSS for authentic WhatsApp styling
-st.markdown("""
-<style>
-    /* Global dark theme */
-    .main {
-        background-color: #0d1418;
-        padding: 0 !important;
-    }
-    
-    /* Remove default padding */
-    .block-container {
-        padding-top: 0 !important;
-        padding-bottom: 0 !important;
-        max-width: 100% !important;
-    }
-    
-    /* Sidebar styling */
-    [data-testid="stSidebar"] {
-        background-color: #111b21;
-        border-right: 1px solid #2a3942;
-    }
-    
-    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, 
-    [data-testid="stSidebar"] h3, [data-testid="stSidebar"] h4 {
-        color: #e9edef !important;
-    }
-    
-    [data-testid="stSidebar"] label {
-        color: #8696a0 !important;
-    }
-    
-    [data-testid="stSidebar"] input {
-        background-color: #2a3942 !important;
-        color: #e9edef !important;
-        border: 1px solid #3b4a54 !important;
-    }
-    
-    /* Header */
-    .main-header {
-        background: #202c33;
-        padding: 15px 20px;
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        border-bottom: 1px solid #2a3942;
-        margin-bottom: 0;
-        position: sticky;
-        top: 0;
-        z-index: 999;
-    }
-    
-    .main-header h1 {
-        color: #e9edef;
-        margin: 0;
-        font-size: 19px;
-        font-weight: 400;
-        flex: 1;
-    }
-    
-    .logo-img {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        object-fit: cover;
-    }
-    
-    /* Contact list */
-    .contact-card {
-        background-color: #111b21;
-        padding: 12px 16px;
-        cursor: pointer;
-        border-bottom: 1px solid #2a3942;
-        transition: background-color 0.2s;
-        position: relative;
-    }
-    
-    .contact-card:hover {
-        background-color: #202c33;
-    }
-    
-    .contact-card.selected {
-        background-color: #2a3942;
-    }
-    
-    .contact-name {
-        color: #e9edef;
-        font-size: 16px;
-        font-weight: 400;
-        margin-bottom: 2px;
-    }
-    
-    .contact-phone {
-        color: #667781;
-        font-size: 13px;
-        margin-bottom: 3px;
-    }
-    
-    .contact-preview {
-        color: #8696a0;
-        font-size: 14px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    
-    .contact-time {
-        position: absolute;
-        top: 12px;
-        right: 16px;
-        color: #8696a0;
-        font-size: 12px;
-    }
-    
-    .follow-up-dot {
-        color: #ff3b30;
-        font-weight: bold;
-        margin-right: 5px;
-    }
-    
-    /* Chat header */
-    .chat-header {
-        background: #202c33;
-        padding: 10px 20px;
-        margin-bottom: 10px;
-        border-bottom: 1px solid #2a3942;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border: 1px solid #3b4a54;
-        border-radius: 8px;
-    }
-    
-    .chat-header-info h3 {
-        color: #e9edef;
-        margin: 0;
-        font-size: 16px;
-        font-weight: 400;
-    }
-    
-    .chat-header-info p {
-        color: #8696a0;
-        margin: 0;
-        font-size: 13px;
-    }
-    
-    .unread-badge {
-        color: #ff3b30;
-        font-size: 13px;
-        margin: 0 0 10px 20px;
-    }
-    
-    /* Message container */
-    .message-row {
-        display: flex;
-        margin-bottom: 12px;
-        clear: both;
-    }
-    
-    .message-row.user {
-        justify-content: flex-start;
-    }
-    
-    .message-row.bot {
-        justify-content: flex-end;
-    }
-    
-    /* Message bubble */
-    .message-bubble {
-        max-width: 65%;
-        padding: 8px 12px 8px 12px;
-        border-radius: 8px;
-        position: relative;
-        box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
-    }
-    
-    .message-bubble.user {
-        background-color: #202c33;
-    }
-    
-    .message-bubble.bot {
-        background-color: #005c4b;
-    }
-    
-    .message-text {
-        color: #e9edef;
-        font-size: 14.2px;
-        line-height: 19px;
-        margin-bottom: 4px;
-        word-wrap: break-word;
-    }
-    
-    .message-time {
-        color: #8696a0;
-        font-size: 11px;
-        text-align: right;
-        margin-top: 4px;
-    }
-    
-    .message-meta {
-        color: #8696a0;
-        font-size: 11px;
-        margin-top: 4px;
-    }
-    
-    /* Highlight for search matches */
-    .highlight {
-        background-color: #86745f;
-        padding: 0 1px;
-        border-radius: 2px;
-    }
-    
-    /* Update section */
-    .update-section {
-        border: 1px solid #3b4a54;
-        border-radius: 8px;
-        padding: 15px;
-        margin-top: 20px;
-        background-color: #111b21;
-    }
-    
-    .update-section h3 {
-        color: #e9edef !important;
-        font-size: 16px !important;
-        margin-bottom: 15px !important;
-    }
-    
-    .send-section {
-        border: 1px solid #3b4a54;
-        border-radius: 8px;
-        padding: 15px;
-        margin-top: 20px;
-        margin-bottom: 20px;
-        background-color: #111b21;
-    }
-    
-    .send-section h3 {
-        color: #e9edef !important;
-        font-size: 16px !important;
-        margin-bottom: 15px !important;
-    }
-    
-    .chat-area {
-        border: 1px solid #3b4a54;
-        border-radius: 8px;
-        padding: 15px;
-        margin-bottom: 20px;
-        background-color: #0d1418;
-        min-height: 1px;
-    }
-    
-    .pagination-section {
-        border: 1px solid #3b4a54;
-        border-radius: 8px;
-        padding: 15px;
-        margin-bottom: 20px;
-        background-color: #111b21;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-    
-    .pagination-info {
-        color: #8696a0;
-        font-size: 14px;
-        margin: 0;
-        text-align: center;
-        flex: 1;
-    }
-    
-    /* Buttons */
-    .stButton > button {
-        background-color: #00a884 !important;
-        color: white !important;
-        border: none !important;
-        font-weight: 500 !important;
-    }
-    
-    .stButton > button:hover {
-        background-color: #06cf9c !important;
-    }
-    
-    .delete-btn {
-        background-color: #dc3545 !important;
-        padding: 4px 8px !important;
-        font-size: 11px !important;
-        border-radius: 4px !important;
-        color: white !important;
-        border: none !important;
-        cursor: pointer;
-        margin-top: 4px;
-    }
-    
-    /* Input fields */
-    .stTextInput input, .stTextArea textarea {
-        background-color: #2a3942 !important;
-        color: #e9edef !important;
-        border: 1px solid #3b4a54 !important;
-    }
-    
-    /* Checkbox */
-    [data-testid="stCheckbox"] label {
-        color: #e9edef !important;
-    }
-    
-    /* Scrollbar */
-    ::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
-    }
-    
-    ::-webkit-scrollbar-track {
-        background: #0d1418;
-    }
-    
-    ::-webkit-scrollbar-thumb {
-        background: #2a3942;
-        border-radius: 3px;
-    }
-    
-    ::-webkit-scrollbar-thumb:hover {
-        background: #3b4a54;
-    }
-    
-    /* Hide streamlit menu/footer and header */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    
-    /* Override streamlit's default padding for header */
-    .main .block-container {
-        padding-top: 0rem !important;
-    }
-</style>
-""", unsafe_allow_html=True)
+# Apply CSS based on current theme
+st.markdown(get_css(st.session_state.theme), unsafe_allow_html=True)
 
 # Header with logo
 logo_base64 = get_base64_logo()
@@ -428,6 +789,19 @@ else:
 st.sidebar.subheader("🔴 Follow-up")
 only_fu = st.sidebar.checkbox("Show only follow-up clients")
 
+# Theme toggle button in sidebar
+st.sidebar.divider()
+st.sidebar.subheader("🎨 Theme")
+
+# Simple toggle button
+if st.session_state.theme == "dark":
+    if st.sidebar.button("☀️ Switch to Light Mode", use_container_width=True, key="theme_toggle"):
+        st.session_state.theme = "light"
+        st.rerun()
+else:
+    if st.sidebar.button("🌙 Switch to Dark Mode", use_container_width=True, key="theme_toggle"):
+        st.session_state.theme = "dark"
+        st.rerun()
 
 # Helper functions
 def fetch_contacts(only_follow_up: bool):
@@ -650,6 +1024,9 @@ with col2:
     conv = fetch_conversation(phone, limit=CONV_LIMIT, offset=st.session_state.conv_offset)
     conv = filter_messages(conv, date_filter, time_from, time_to)
     
+    # Sort messages by timestamp (oldest first) so new messages appear at bottom
+    conv.sort(key=lambda x: datetime.fromisoformat(x["timestamp"]))
+    
     # Unread badge (based on follow_up_needed in current page)
     unread_count = sum(1 for m in conv if m.get("follow_up_needed"))
     if unread_count > 0:
@@ -774,29 +1151,30 @@ with col2:
         
         st.markdown('</div>', unsafe_allow_html=True)  # Close send-section
         
-        # Update section
-        last_msg = conv[-1]
+        # Update section - use the first message (oldest) in sorted list for update
+        update_msg = conv[0] if conv else None
         
-        st.markdown('<div class="update-section">', unsafe_allow_html=True)
-        st.markdown("### 📝 Update Follow-up Status")
-        
-        col_u1, col_u2 = st.columns(2)
-        with col_u1:
-            fu_flag = st.checkbox("🔴 Follow-up needed", value=last_msg.get("follow_up_needed", False))
-        with col_u2:
-            handler = st.text_input("👤 Handled by", value=last_msg.get("handled_by") or "")
-        
-        notes = st.text_area("📝 Notes", value=last_msg.get("notes") or "")
-        
-        if st.button("💾 Save Follow-up", use_container_width=True):
-            resp = requests.patch(
-                f"{API_BASE}/message/{last_msg['id']}",
-                json={"follow_up_needed": fu_flag, "notes": notes, "handled_by": handler}
-            )
-            if resp.status_code == 200:
-                st.success("✅ Saved!")
-                st.rerun()
-            else:
-                st.error(f"Error: {resp.text}")
-        
-        st.markdown('</div>', unsafe_allow_html=True)  # Close update-section
+        if update_msg:
+            st.markdown('<div class="update-section">', unsafe_allow_html=True)
+            st.markdown("### 📝 Update Follow-up Status")
+            
+            col_u1, col_u2 = st.columns(2)
+            with col_u1:
+                fu_flag = st.checkbox("🔴 Follow-up needed", value=update_msg.get("follow_up_needed", False))
+            with col_u2:
+                handler = st.text_input("👤 Handled by", value=update_msg.get("handled_by") or "")
+            
+            notes = st.text_area("📝 Notes", value=update_msg.get("notes") or "")
+            
+            if st.button("💾 Save Follow-up", use_container_width=True):
+                resp = requests.patch(
+                    f"{API_BASE}/message/{update_msg['id']}",
+                    json={"follow_up_needed": fu_flag, "notes": notes, "handled_by": handler}
+                )
+                if resp.status_code == 200:
+                    st.success("✅ Saved!")
+                    st.rerun()
+                else:
+                    st.error(f"Error: {resp.text}")
+            
+            st.markdown('</div>', unsafe_allow_html=True)  # Close update-section
