@@ -122,6 +122,13 @@ def get_css(theme):
                 object-fit: cover;
             }
             
+            /* Header buttons container */
+            .header-buttons {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            
             /* Filter section */
             .filter-container {
                 background-color: #111b21;
@@ -458,19 +465,19 @@ def get_css(theme):
                 padding-top: 0rem !important;
             }
             
-            /* Header buttons container */
-            .header-buttons {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            }
-            
             /* Filter action buttons */
             .filter-actions {
                 display: flex;
                 gap: 10px;
                 margin-top: 20px;
                 justify-content: flex-end;
+            }
+            
+            /* Filter toggle and theme buttons row */
+            .top-buttons-row {
+                display: flex;
+                gap: 10px;
+                margin-bottom: 15px;
             }
         </style>
         """
@@ -517,6 +524,13 @@ def get_css(theme):
                 height: 40px;
                 border-radius: 50%;
                 object-fit: cover;
+            }
+            
+            /* Header buttons container */
+            .header-buttons {
+                display: flex;
+                align-items: center;
+                gap: 10px;
             }
             
             /* Filter section */
@@ -855,19 +869,19 @@ def get_css(theme):
                 padding-top: 0rem !important;
             }
             
-            /* Header buttons container */
-            .header-buttons {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            }
-            
             /* Filter action buttons */
             .filter-actions {
                 display: flex;
                 gap: 10px;
                 margin-top: 20px;
                 justify-content: flex-end;
+            }
+            
+            /* Filter toggle and theme buttons row */
+            .top-buttons-row {
+                display: flex;
+                gap: 10px;
+                margin-bottom: 15px;
             }
         </style>
         """
@@ -891,10 +905,26 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# Toggle filter section
-if st.button(f"{'▼' if st.session_state.show_filters else '▶'} Filters", key="toggle_filters"):
-    st.session_state.show_filters = not st.session_state.show_filters
-    st.rerun()
+# Create a row for filter toggle and theme buttons
+col_filter, col_theme = st.columns([1, 1])
+
+with col_filter:
+    # Filter toggle button
+    filter_icon = "▼" if st.session_state.show_filters else "▶"
+    if st.button(f"{filter_icon} Filters", key="toggle_filters", use_container_width=True):
+        st.session_state.show_filters = not st.session_state.show_filters
+        st.rerun()
+
+with col_theme:
+    # Theme toggle button
+    if st.session_state.theme == "dark":
+        if st.button("☀️ Light Mode", key="theme_toggle", use_container_width=True):
+            st.session_state.theme = "light"
+            st.rerun()
+    else:
+        if st.button("🌙 Dark Mode", key="theme_toggle", use_container_width=True):
+            st.session_state.theme = "dark"
+            st.rerun()
 
 # Filter section (dropdown)
 if st.session_state.show_filters:
@@ -966,37 +996,12 @@ if st.session_state.show_filters:
         key="filter_only_fu_check"
     )
     
-    # Filter action buttons
+    # Apply Filters button only (removed Clear Filters button)
     st.markdown('<div class="filter-actions">', unsafe_allow_html=True)
-    col_apply, col_clear, col_theme = st.columns([1, 1, 1])
-    
-    with col_apply:
-        if st.button("Apply Filters", use_container_width=True):
-            st.rerun()
-    
-    with col_clear:
-        if st.button("Clear Filters", use_container_width=True):
-            st.session_state.filter_phone = ""
-            st.session_state.filter_name = ""
-            st.session_state.filter_by_date = False
-            st.session_state.filter_date = date.today()
-            st.session_state.filter_by_time = False
-            st.session_state.filter_time_from = time(0, 0)
-            st.session_state.filter_time_to = time(23, 59)
-            st.session_state.filter_only_fu = False
-            st.rerun()
-    
-    with col_theme:
-        if st.session_state.theme == "dark":
-            if st.button("☀️ Light Mode", use_container_width=True):
-                st.session_state.theme = "light"
-                st.rerun()
-        else:
-            if st.button("🌙 Dark Mode", use_container_width=True):
-                st.session_state.theme = "dark"
-                st.rerun()
-    
+    if st.button("Apply Filters", use_container_width=True, type="primary"):
+        st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)  # Close filter-actions
+    
     st.markdown('</div>', unsafe_allow_html=True)  # Close filter-content
     st.markdown('</div>', unsafe_allow_html=True)  # Close filter-container
 
