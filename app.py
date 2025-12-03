@@ -399,6 +399,12 @@ def get_css(theme):
             .main .block-container {
                 padding-top: 0rem !important;
             }
+            
+            /* Scroll to bottom script */
+            .chat-area {
+                max-height: 500px;
+                overflow-y: auto;
+            }
         </style>
         """
     else:  # light theme
@@ -743,6 +749,12 @@ def get_css(theme):
             .main .block-container {
                 padding-top: 0rem !important;
             }
+            
+            /* Scroll to bottom script */
+            .chat-area {
+                max-height: 500px;
+                overflow-y: auto;
+            }
         </style>
         """
 
@@ -1024,6 +1036,9 @@ with col2:
     conv = fetch_conversation(phone, limit=CONV_LIMIT, offset=st.session_state.conv_offset)
     conv = filter_messages(conv, date_filter, time_from, time_to)
     
+    # Sort messages by timestamp (oldest to newest) so new messages appear at bottom
+    conv.sort(key=lambda x: datetime.fromisoformat(x["timestamp"]))
+    
     # Unread badge (based on follow_up_needed in current page)
     unread_count = sum(1 for m in conv if m.get("follow_up_needed"))
     if unread_count > 0:
@@ -1141,6 +1156,8 @@ with col2:
                     # Clear draft by deleting the key instead of setting to empty string
                     if draft_key in st.session_state:
                         del st.session_state[draft_key]
+                    # Reset to first page to see the new message at bottom
+                    st.session_state.conv_offset = 0
                     # Wait a moment for the message to be logged
                     import time
                     time.sleep(0.5)
@@ -1148,29 +1165,49 @@ with col2:
         
         st.markdown('</div>', unsafe_allow_html=True)  # Close send-section
         
-        # Update section
-        last_msg = conv[-1]
+        # Update section - use the last message (most recent)
+        last_msg = conv[-1] if conv else None
         
-        st.markdown('<div class="update-section">', unsafe_allow_html=True)
-        st.markdown("### 📝 Update Follow-up Status")
-        
-        col_u1, col_u2 = st.columns(2)
-        with col_u1:
-            fu_flag = st.checkbox("🔴 Follow-up needed", value=last_msg.get("follow_up_needed", False))
-        with col_u2:
-            handler = st.text_input("👤 Handled by", value=last_msg.get("handled_by") or "")
-        
-        notes = st.text_area("📝 Notes", value=last_msg.get("notes") or "")
-        
-        if st.button("💾 Save Follow-up", use_container_width=True):
-            resp = requests.patch(
-                f"{API_BASE}/message/{last_msg['id']}",
-                json={"follow_up_needed": fu_flag, "notes": notes, "handled_by": handler}
-            )
-            if resp.status_code == 200:
-                st.success("✅ Saved!")
-                st.rerun()
-            else:
-                st.error(f"Error: {resp.text}")
-        
-        st.markdown('</div>', unsafe_allow_html=True)  # Close update-section
+        if last_msg:
+            st.markdown('<div class="update-section">', unsafe_allow_html=True)
+            st.markdown("### 📝 Update Follow-up Status")
+            
+            col_u1, col_u2 = st.columns(2)
+            with col_u1:
+                fu_flag = st.checkbox("🔴 Follow-up needed", value=last_msg.get("follow_up_needed", False))
+            with col_u2:
+                handler = st.text_input("👤 Handled by", value=last_msg.get("handled_by") or "")
+            
+            notes = st.text_area("📝 Notes", value=last_msg.get("notes") or "")
+            
+            if st.button("💾 Save Follow-up", use_container_width=True):
+                resp = requests.patch(
+                    f"{API_BASE}/message/{last_msg['id']}",
+                    json={"follow_up_needed": fu_flag, "notes": notes, "handled_by": handler}
+                )
+                if resp.status_code == 200:
+                    st.success("✅ Saved!")
+                    st.rerun()
+                else:
+                    st.error(f"Error: {resp.text}")
+            
+            st.markdown('</div>', unsafe_allow_html=True)  # Close update-section
+
+# Add JavaScript to scroll to bottom of chat area when new messages are added
+st.markdown("""
+<script>
+    // Function to scroll to bottom of chat area
+    function scrollToBottom() {
+        const chatArea = document.querySelector('.chat-area');
+        if (chatArea) {
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+    }
+    
+    // Scroll to bottom when page loads
+    window.addEventListener('load', scrollToBottom);
+    
+    // Also scroll to bottom after a short delay to ensure content is loaded
+    setTimeout(scrollToBottom, 500);
+</script>
+""", unsafe_allow_html=True)
