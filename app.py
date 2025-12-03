@@ -1237,7 +1237,6 @@ with col2:
     
     # Sort messages by timestamp in ascending order (oldest first) for correct display order
     conv.sort(key=lambda x: datetime.fromisoformat(x["timestamp"]))
-    conv.reverse()
     
     # Unread badge (based on follow_up_needed in current page)
     unread_count = sum(1 for m in conv if m.get("follow_up_needed"))
@@ -1393,4 +1392,5 @@ with col2:
                     st.error(f"Error: {resp.text}")
             
             st.markdown('</div>', unsafe_allow_html=True)  # Close update-section
+
 
