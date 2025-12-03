@@ -399,27 +399,6 @@ def get_css(theme):
             .main .block-container {
                 padding-top: 0rem !important;
             }
-            
-            /* Sidebar toggle button */
-            .sidebar-toggle-btn {
-                background: none;
-                border: none;
-                color: #8696a0;
-                font-size: 24px;
-                cursor: pointer;
-                padding: 5px;
-                margin-right: 10px;
-                transition: color 0.2s;
-            }
-            
-            .sidebar-toggle-btn:hover {
-                color: #e9edef;
-            }
-            
-            /* Make sure sidebar toggle is visible when sidebar is collapsed */
-            .main-header .sidebar-toggle-btn {
-                display: block !important;
-            }
         </style>
         """
     else:  # light theme
@@ -764,34 +743,13 @@ def get_css(theme):
             .main .block-container {
                 padding-top: 0rem !important;
             }
-            
-            /* Sidebar toggle button */
-            .sidebar-toggle-btn {
-                background: none;
-                border: none;
-                color: #65676b;
-                font-size: 24px;
-                cursor: pointer;
-                padding: 5px;
-                margin-right: 10px;
-                transition: color 0.2s;
-            }
-            
-            .sidebar-toggle-btn:hover {
-                color: #1c1e21;
-            }
-            
-            /* Make sure sidebar toggle is visible when sidebar is collapsed */
-            .main-header .sidebar-toggle-btn {
-                display: block !important;
-            }
         </style>
         """
 
 # Apply CSS based on current theme
 st.markdown(get_css(st.session_state.theme), unsafe_allow_html=True)
 
-# Header with logo and sidebar toggle
+# Header with logo
 logo_base64 = get_base64_logo()
 if logo_base64:
     logo_html = f'<img src="data:image/png;base64,{logo_base64}" class="logo-img">'
@@ -800,54 +758,11 @@ else:
     logo_url = "https://drive.google.com/uc?export=view&id=1NSTzTZ_gusa-c4Sc5dZelth-Djft0Zca"
     logo_html = f'<img src="{logo_url}" class="logo-img" onerror="this.style.display=\'none\'">'
 
-# Add JavaScript to toggle sidebar
-sidebar_toggle_js = """
-<script>
-function toggleSidebar() {
-    const sidebar = document.querySelector('[data-testid="stSidebar"]');
-    const content = document.querySelector('.main');
-    
-    if (sidebar.style.width === '0px' || sidebar.style.width === '') {
-        // Expand sidebar
-        sidebar.style.width = '21rem';
-        sidebar.style.minWidth = '21rem';
-        content.style.marginLeft = '21rem';
-        document.getElementById('sidebar-toggle-icon').textContent = '←';
-    } else {
-        // Collapse sidebar
-        sidebar.style.width = '0px';
-        sidebar.style.minWidth = '0px';
-        content.style.marginLeft = '0px';
-        document.getElementById('sidebar-toggle-icon').textContent = '→';
-    }
-}
-
-// Initialize sidebar state
-document.addEventListener('DOMContentLoaded', function() {
-    const sidebarToggleBtn = document.querySelector('.sidebar-toggle-btn');
-    if (sidebarToggleBtn) {
-        sidebarToggleBtn.addEventListener('click', toggleSidebar);
-    }
-    
-    // Make sure sidebar is visible by default
-    const sidebar = document.querySelector('[data-testid="stSidebar"]');
-    if (sidebar) {
-        sidebar.style.width = '21rem';
-        sidebar.style.minWidth = '21rem';
-    }
-});
-</script>
-"""
-
 st.markdown(f"""
 <div class="main-header">
-    <button class="sidebar-toggle-btn" id="sidebar-toggle" title="Toggle Sidebar">
-        <span id="sidebar-toggle-icon">←</span>
-    </button>
     {logo_html}
     <h1>WhatsApp Chat Inbox – Amirtharaj Investment</h1>
 </div>
-{sidebar_toggle_js}
 """, unsafe_allow_html=True)
 
 # Sidebar Filters
@@ -1109,9 +1024,6 @@ with col2:
     conv = fetch_conversation(phone, limit=CONV_LIMIT, offset=st.session_state.conv_offset)
     conv = filter_messages(conv, date_filter, time_from, time_to)
     
-    # Sort messages by timestamp (oldest first) so new messages appear at bottom
-    conv.sort(key=lambda x: datetime.fromisoformat(x["timestamp"]), reverse=True)
-    
     # Unread badge (based on follow_up_needed in current page)
     unread_count = sum(1 for m in conv if m.get("follow_up_needed"))
     if unread_count > 0:
@@ -1236,30 +1148,29 @@ with col2:
         
         st.markdown('</div>', unsafe_allow_html=True)  # Close send-section
         
-        # Update section - use the first message (oldest) in sorted list for update
-        update_msg = conv[0] if conv else None
+        # Update section
+        last_msg = conv[-1]
         
-        if update_msg:
-            st.markdown('<div class="update-section">', unsafe_allow_html=True)
-            st.markdown("### 📝 Update Follow-up Status")
-            
-            col_u1, col_u2 = st.columns(2)
-            with col_u1:
-                fu_flag = st.checkbox("🔴 Follow-up needed", value=update_msg.get("follow_up_needed", False))
-            with col_u2:
-                handler = st.text_input("👤 Handled by", value=update_msg.get("handled_by") or "")
-            
-            notes = st.text_area("📝 Notes", value=update_msg.get("notes") or "")
-            
-            if st.button("💾 Save Follow-up", use_container_width=True):
-                resp = requests.patch(
-                    f"{API_BASE}/message/{update_msg['id']}",
-                    json={"follow_up_needed": fu_flag, "notes": notes, "handled_by": handler}
-                )
-                if resp.status_code == 200:
-                    st.success("✅ Saved!")
-                    st.rerun()
-                else:
-                    st.error(f"Error: {resp.text}")
-            
-            st.markdown('</div>', unsafe_allow_html=True)  # Close update-section
+        st.markdown('<div class="update-section">', unsafe_allow_html=True)
+        st.markdown("### 📝 Update Follow-up Status")
+        
+        col_u1, col_u2 = st.columns(2)
+        with col_u1:
+            fu_flag = st.checkbox("🔴 Follow-up needed", value=last_msg.get("follow_up_needed", False))
+        with col_u2:
+            handler = st.text_input("👤 Handled by", value=last_msg.get("handled_by") or "")
+        
+        notes = st.text_area("📝 Notes", value=last_msg.get("notes") or "")
+        
+        if st.button("💾 Save Follow-up", use_container_width=True):
+            resp = requests.patch(
+                f"{API_BASE}/message/{last_msg['id']}",
+                json={"follow_up_needed": fu_flag, "notes": notes, "handled_by": handler}
+            )
+            if resp.status_code == 200:
+                st.success("✅ Saved!")
+                st.rerun()
+            else:
+                st.error(f"Error: {resp.text}")
+        
+        st.markdown('</div>', unsafe_allow_html=True)  # Close update-section
