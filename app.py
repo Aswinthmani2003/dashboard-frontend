@@ -548,6 +548,8 @@ st.sidebar.subheader("🎨 Theme")
 current_theme = st.session_state.theme
 theme_options = ["dark", "light"]
 theme_labels = ["🌙 Dark Mode", "☀️ Light Mode"]
+
+# Use a unique key for the radio widget
 selected_theme = st.sidebar.radio(
     "Select theme:",
     options=theme_options,
@@ -935,7 +937,8 @@ with col2:
         st.markdown('</div>', unsafe_allow_html=True)  # Close update-section
 
 # Add floating theme toggle button
-st.markdown("""
+current_icon = "☀️" if st.session_state.theme == "dark" else "🌙"
+theme_toggle_html = f"""
 <div class="theme-toggle">
     <div data-testid="stVerticalBlock">
         <div style="display: flex; justify-content: center;">
@@ -943,7 +946,7 @@ st.markdown("""
                 <div style="display: flex; flex-direction: column;">
                     <div style="display: flex; justify-content: center;">
                         <button kind="primary" class="st-emotion-cache-1j4fphg edgvbvh10">
-                            {icon}
+                            {current_icon}
                         </button>
                     </div>
                 </div>
@@ -958,7 +961,7 @@ st.markdown("""
     document.querySelector('.theme-toggle button').innerHTML = buttonIcon;
     
     // Add click handler to toggle theme
-    document.querySelector('.theme-toggle button').addEventListener('click', function() {
+    document.querySelector('.theme-toggle button').addEventListener('click', function() {{
         const currentTheme = document.body.getAttribute('data-theme');
         const newTheme = currentTheme === 'light' ? 'dark' : 'light';
         
@@ -974,7 +977,7 @@ st.markdown("""
         // Trigger Streamlit rerun to update session state
         const event = new Event('themeChanged');
         document.dispatchEvent(event);
-    });
+    }});
     
     // Listen for theme changes from Streamlit
     document.addEventListener('themeChanged', function() {{
@@ -982,4 +985,6 @@ st.markdown("""
         // No additional action needed as CSS variables handle the visual change
     }});
 </script>
-""".format(icon="☀️" if st.session_state.theme == "dark" else "🌙"), unsafe_allow_html=True)
+"""
+
+st.markdown(theme_toggle_html, unsafe_allow_html=True)
