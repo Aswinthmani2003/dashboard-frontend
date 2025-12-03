@@ -1226,64 +1226,67 @@ with col2:
         key="search_conv"
     )
     
-    # Fetch messages with pagination
     # Fetch and filter the conversation messages
-conv = fetch_conversation(phone, limit=CONV_LIMIT, offset=st.session_state.conv_offset)
-
-# Apply date and time filters to messages
-date_filter = st.session_state.filter_date if st.session_state.filter_by_date else None
-time_from = st.session_state.filter_time_from if st.session_state.filter_by_time else None
-time_to = st.session_state.filter_time_to if st.session_state.filter_by_time else None
-conv = filter_messages(conv, date_filter, time_from, time_to)
-
-# Sort messages by timestamp in ascending order (oldest first) for correct display order
-conv.sort(key=lambda x: datetime.fromisoformat(x["timestamp"]))
-
-# Rendering messages (this will now render from top to bottom, as expected)
-if not conv:
-    st.info("📭 No messages")
-else:
-    # Chat area with border
-    st.markdown('<div class="chat-area">', unsafe_allow_html=True)
+    conv = fetch_conversation(phone, limit=CONV_LIMIT, offset=st.session_state.conv_offset)
     
-    for msg in conv:
-        ts = datetime.fromisoformat(msg["timestamp"])
-        direction = "user" if msg["direction"] in ["user", "incoming"] else "bot"
-        
-        raw_text = msg["message"] or ""
-        display_text = raw_text
-        
-        # Highlight search matches (if applicable)
-        if search_query:
-            pattern = re.escape(search_query)
-            def repl(m):
-                return f"<span class='highlight'>{m.group(0)}</span>"
-            display_text = re.sub(pattern, repl, display_text, flags=re.IGNORECASE)
-        
-        # Replace newlines with <br> to maintain formatting
-        display_text = display_text.replace("\n", "<br>")
-        
-        # Creating the message bubble (user/bot distinction)
-        message_html = f"""
-        <div class="message-row {direction}">
-            <div class="message-bubble {direction}">
-                <div class="message-text">{display_text}</div>
-                <div class="message-time">{ts.strftime("%H:%M")}</div>
-        """
-        
-        # Follow-up flag, notes, etc. (if applicable)
-        if msg.get("follow_up_needed"):
-            message_html += '<div class="message-meta">🔴 Follow-up needed</div>'
-        if msg.get("notes"):
-            message_html += f'<div class="message-meta">📝 {msg["notes"]}</div>'
-        if msg.get("handled_by"):
-            message_html += f'<div class="message-meta">👤 {msg["handled_by"]}</div>'
-        
-        message_html += "</div></div>"
-        st.markdown(message_html, unsafe_allow_html=True)
+    # Apply date and time filters to messages
+    date_filter = st.session_state.filter_date if st.session_state.filter_by_date else None
+    time_from = st.session_state.filter_time_from if st.session_state.filter_by_time else None
+    time_to = st.session_state.filter_time_to if st.session_state.filter_by_time else None
+    conv = filter_messages(conv, date_filter, time_from, time_to)
     
-    st.markdown('</div>', unsafe_allow_html=True)  # Close chat-area
-
+    # Sort messages by timestamp in ascending order (oldest first) for correct display order
+    conv.sort(key=lambda x: datetime.fromisoformat(x["timestamp"]))
+    
+    # Unread badge (based on follow_up_needed in current page)
+    unread_count = sum(1 for m in conv if m.get("follow_up_needed"))
+    if unread_count > 0:
+        st.markdown(f"<p class='unread-badge'>🔴 {unread_count} unread messages</p>", unsafe_allow_html=True)
+    
+    # Rendering messages (this will now render from top to bottom, as expected)
+    if not conv:
+        st.info("📭 No messages")
+    else:
+        # Chat area with border
+        st.markdown('<div class="chat-area">', unsafe_allow_html=True)
+        
+        for msg in conv:
+            ts = datetime.fromisoformat(msg["timestamp"])
+            direction = "user" if msg["direction"] in ["user", "incoming"] else "bot"
+            
+            raw_text = msg["message"] or ""
+            display_text = raw_text
+            
+            # Highlight search matches (if applicable)
+            if search_query:
+                pattern = re.escape(search_query)
+                def repl(m):
+                    return f"<span class='highlight'>{m.group(0)}</span>"
+                display_text = re.sub(pattern, repl, display_text, flags=re.IGNORECASE)
+            
+            # Replace newlines with <br> to maintain formatting
+            display_text = display_text.replace("\n", "<br>")
+            
+            # Creating the message bubble (user/bot distinction)
+            message_html = f"""
+            <div class="message-row {direction}">
+                <div class="message-bubble {direction}">
+                    <div class="message-text">{display_text}</div>
+                    <div class="message-time">{ts.strftime("%H:%M")}</div>
+            """
+            
+            # Follow-up flag, notes, etc. (if applicable)
+            if msg.get("follow_up_needed"):
+                message_html += '<div class="message-meta">🔴 Follow-up needed</div>'
+            if msg.get("notes"):
+                message_html += f'<div class="message-meta">📝 {msg["notes"]}</div>'
+            if msg.get("handled_by"):
+                message_html += f'<div class="message-meta">👤 {msg["handled_by"]}</div>'
+            
+            message_html += "</div></div>"
+            st.markdown(message_html, unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)  # Close chat-area
         
         # Pagination controls with centered info
         st.markdown('<div class="pagination-section">', unsafe_allow_html=True)
@@ -1389,4 +1392,3 @@ else:
                     st.error(f"Error: {resp.text}")
             
             st.markdown('</div>', unsafe_allow_html=True)  # Close update-section
-
