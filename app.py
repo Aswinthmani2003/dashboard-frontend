@@ -45,6 +45,26 @@ check_password()
 if "theme" not in st.session_state:
     st.session_state.theme = "dark"  # default to dark mode
 
+# Initialize filter states for header dropdown
+if "filter_phone_header" not in st.session_state:
+    st.session_state.filter_phone_header = ""
+if "filter_name_header" not in st.session_state:
+    st.session_state.filter_name_header = ""
+if "filter_by_date_header" not in st.session_state:
+    st.session_state.filter_by_date_header = False
+if "filter_date_header" not in st.session_state:
+    st.session_state.filter_date_header = date.today()
+if "filter_by_time_header" not in st.session_state:
+    st.session_state.filter_by_time_header = False
+if "filter_time_from_header" not in st.session_state:
+    st.session_state.filter_time_from_header = time(0, 0)
+if "filter_time_to_header" not in st.session_state:
+    st.session_state.filter_time_to_header = time(23, 59)
+if "filter_only_fu_header" not in st.session_state:
+    st.session_state.filter_only_fu_header = False
+if "show_header_filters" not in st.session_state:
+    st.session_state.show_header_filters = False
+
 # Function to load and encode logo
 def get_base64_logo():
     """Load logo.png and convert to base64 for embedding"""
@@ -121,6 +141,63 @@ def get_css(theme):
                 height: 40px;
                 border-radius: 50%;
                 object-fit: cover;
+            }
+            
+            /* Header buttons container */
+            .header-buttons {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            
+            /* Header filter dropdown */
+            .header-filter-dropdown {
+                position: absolute;
+                top: 100%;
+                right: 20px;
+                background-color: #111b21;
+                border: 1px solid #2a3942;
+                border-radius: 8px;
+                padding: 20px;
+                width: 400px;
+                max-width: 90vw;
+                z-index: 1000;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+                margin-top: 5px;
+            }
+            
+            .header-filter-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 15px;
+                padding-bottom: 10px;
+                border-bottom: 1px solid #2a3942;
+            }
+            
+            .header-filter-header h3 {
+                color: #e9edef;
+                margin: 0;
+                font-size: 16px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            
+            .header-filter-content {
+                max-height: 400px;
+                overflow-y: auto;
+                padding-right: 5px;
+            }
+            
+            .header-filter-section {
+                margin-bottom: 15px;
+            }
+            
+            .header-filter-section h4 {
+                color: #e9edef;
+                margin-bottom: 8px;
+                font-size: 14px;
             }
             
             /* Contact list */
@@ -338,6 +415,20 @@ def get_css(theme):
                 background-color: #06cf9c !important;
             }
             
+            .header-button {
+                background-color: #2a3942 !important;
+                color: #e9edef !important;
+                border: 1px solid #3b4a54 !important;
+                padding: 8px 16px !important;
+                border-radius: 6px !important;
+                font-size: 14px !important;
+                margin-left: 5px !important;
+            }
+            
+            .header-button:hover {
+                background-color: #3b4a54 !important;
+            }
+            
             .delete-btn {
                 background-color: #dc3545 !important;
                 padding: 4px 8px !important;
@@ -371,6 +462,13 @@ def get_css(theme):
                 color: #e9edef !important;
             }
             
+            /* Date and time inputs */
+            .stDateInput input, .stTimeInput input {
+                background-color: #2a3942 !important;
+                color: #e9edef !important;
+                border: 1px solid #3b4a54 !important;
+            }
+            
             /* Scrollbar */
             ::-webkit-scrollbar {
                 width: 6px;
@@ -398,6 +496,17 @@ def get_css(theme):
             /* Override streamlit's default padding for header */
             .main .block-container {
                 padding-top: 0rem !important;
+            }
+            
+            /* Overlay for when dropdown is open */
+            .dropdown-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: transparent;
+                z-index: 999;
             }
         </style>
         """
@@ -465,6 +574,63 @@ def get_css(theme):
                 height: 40px;
                 border-radius: 50%;
                 object-fit: cover;
+            }
+            
+            /* Header buttons container */
+            .header-buttons {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            
+            /* Header filter dropdown */
+            .header-filter-dropdown {
+                position: absolute;
+                top: 100%;
+                right: 20px;
+                background-color: #ffffff;
+                border: 1px solid #dddfe2;
+                border-radius: 8px;
+                padding: 20px;
+                width: 400px;
+                max-width: 90vw;
+                z-index: 1000;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+                margin-top: 5px;
+            }
+            
+            .header-filter-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 15px;
+                padding-bottom: 10px;
+                border-bottom: 1px solid #dddfe2;
+            }
+            
+            .header-filter-header h3 {
+                color: #1c1e21;
+                margin: 0;
+                font-size: 16px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            
+            .header-filter-content {
+                max-height: 400px;
+                overflow-y: auto;
+                padding-right: 5px;
+            }
+            
+            .header-filter-section {
+                margin-bottom: 15px;
+            }
+            
+            .header-filter-section h4 {
+                color: #1c1e21;
+                margin-bottom: 8px;
+                font-size: 14px;
             }
             
             /* Contact list */
@@ -682,6 +848,20 @@ def get_css(theme):
                 background-color: #0073e6 !important;
             }
             
+            .header-button {
+                background-color: #e4e6eb !important;
+                color: #1c1e21 !important;
+                border: 1px solid #ccd0d5 !important;
+                padding: 8px 16px !important;
+                border-radius: 6px !important;
+                font-size: 14px !important;
+                margin-left: 5px !important;
+            }
+            
+            .header-button:hover {
+                background-color: #d8dadf !important;
+            }
+            
             .delete-btn {
                 background-color: #dc3545 !important;
                 padding: 4px 8px !important;
@@ -715,6 +895,13 @@ def get_css(theme):
                 color: #1c1e21 !important;
             }
             
+            /* Date and time inputs */
+            .stDateInput input, .stTimeInput input {
+                background-color: #ffffff !important;
+                color: #1c1e21 !important;
+                border: 1px solid #ccd0d5 !important;
+            }
+            
             /* Scrollbar */
             ::-webkit-scrollbar {
                 width: 6px;
@@ -743,13 +930,24 @@ def get_css(theme):
             .main .block-container {
                 padding-top: 0rem !important;
             }
+            
+            /* Overlay for when dropdown is open */
+            .dropdown-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: transparent;
+                z-index: 999;
+            }
         </style>
         """
 
 # Apply CSS based on current theme
 st.markdown(get_css(st.session_state.theme), unsafe_allow_html=True)
 
-# Header with logo
+# Header with logo and buttons
 logo_base64 = get_base64_logo()
 if logo_base64:
     logo_html = f'<img src="data:image/png;base64,{logo_base64}" class="logo-img">'
@@ -758,14 +956,180 @@ else:
     logo_url = "https://drive.google.com/uc?export=view&id=1NSTzTZ_gusa-c4Sc5dZelth-Djft0Zca"
     logo_html = f'<img src="{logo_url}" class="logo-img" onerror="this.style.display=\'none\'">'
 
+# JavaScript to handle dropdown closing when clicking outside
+dropdown_js = """
+<script>
+function closeHeaderFilters() {
+    // Send a message to Streamlit to close the header filters
+    window.parent.postMessage({type: 'streamlit:setComponentValue', value: 'close_header_filters'}, '*');
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+    const dropdown = document.querySelector('.header-filter-dropdown');
+    const filterButton = document.querySelector('[data-testid="baseButton-secondary"][title*="Filters"]');
+    
+    if (dropdown && filterButton) {
+        // Check if click is outside both dropdown and filter button
+        if (!dropdown.contains(event.target) && !filterButton.contains(event.target)) {
+            closeHeaderFilters();
+        }
+    }
+});
+</script>
+"""
+
 st.markdown(f"""
 <div class="main-header">
     {logo_html}
     <h1>WhatsApp Chat Inbox – Amirtharaj Investment</h1>
+    <div class="header-buttons">
+        <button class="header-button" onclick="showHeaderFilters()">🔍 Filters</button>
+        <button class="header-button" onclick="toggleHeaderTheme()">🎨 Theme</button>
+    </div>
 </div>
+{dropdown_js}
 """, unsafe_allow_html=True)
 
-# Sidebar Filters
+# Add JavaScript for header buttons
+st.markdown("""
+<script>
+function showHeaderFilters() {
+    // Send a message to Streamlit to toggle header filters
+    window.parent.postMessage({type: 'streamlit:setComponentValue', value: 'toggle_header_filters'}, '*');
+}
+
+function toggleHeaderTheme() {
+    // Send a message to Streamlit to toggle theme
+    window.parent.postMessage({type: 'streamlit:setComponentValue', value: 'toggle_header_theme'}, '*');
+}
+</script>
+""", unsafe_allow_html=True)
+
+# Create header filter dropdown using Streamlit elements
+if st.session_state.show_header_filters:
+    # Create overlay to close dropdown when clicking outside
+    st.markdown('<div class="dropdown-overlay" onclick="closeHeaderFilters()"></div>', unsafe_allow_html=True)
+    
+    # Create dropdown container
+    st.markdown('<div class="header-filter-dropdown">', unsafe_allow_html=True)
+    
+    # Dropdown header
+    col_header1, col_header2 = st.columns([5, 1])
+    with col_header1:
+        st.markdown("<h3><span>🔍</span> Quick Filters</h3>", unsafe_allow_html=True)
+    with col_header2:
+        if st.button("✕", key="close_header_filters", help="Close"):
+            st.session_state.show_header_filters = False
+            st.rerun()
+    
+    # Filter sections
+    st.markdown('<div class="header-filter-content">', unsafe_allow_html=True)
+    
+    # Phone filter
+    st.markdown('<div class="header-filter-section">', unsafe_allow_html=True)
+    st.markdown("<h4>📱 Phone Number</h4>", unsafe_allow_html=True)
+    st.session_state.filter_phone_header = st.text_input(
+        "Search by phone",
+        value=st.session_state.filter_phone_header,
+        placeholder="Enter phone number...",
+        key="filter_phone_header_input",
+        label_visibility="collapsed"
+    )
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Name filter
+    st.markdown('<div class="header-filter-section">', unsafe_allow_html=True)
+    st.markdown("<h4>👤 Client Name</h4>", unsafe_allow_html=True)
+    st.session_state.filter_name_header = st.text_input(
+        "Search by client name",
+        value=st.session_state.filter_name_header,
+        placeholder="Enter client name...",
+        key="filter_name_header_input",
+        label_visibility="collapsed"
+    )
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Date filter
+    st.markdown('<div class="header-filter-section">', unsafe_allow_html=True)
+    st.markdown("<h4>📅 Date Filter</h4>", unsafe_allow_html=True)
+    col_date1, col_date2 = st.columns([1, 2])
+    with col_date1:
+        st.session_state.filter_by_date_header = st.checkbox(
+            "Enable",
+            value=st.session_state.filter_by_date_header,
+            key="filter_by_date_header_check"
+        )
+    with col_date2:
+        if st.session_state.filter_by_date_header:
+            st.session_state.filter_date_header = st.date_input(
+                "Select date",
+                value=st.session_state.filter_date_header,
+                key="filter_date_header_input",
+                label_visibility="collapsed"
+            )
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Time filter
+    st.markdown('<div class="header-filter-section">', unsafe_allow_html=True)
+    st.markdown("<h4>🕐 Time Range</h4>", unsafe_allow_html=True)
+    col_time1, col_time2 = st.columns([1, 2])
+    with col_time1:
+        st.session_state.filter_by_time_header = st.checkbox(
+            "Enable",
+            value=st.session_state.filter_by_time_header,
+            key="filter_by_time_header_check"
+        )
+    with col_time2:
+        if st.session_state.filter_by_time_header:
+            col_time_in1, col_time_in2 = st.columns(2)
+            with col_time_in1:
+                st.session_state.filter_time_from_header = st.time_input(
+                    "From",
+                    value=st.session_state.filter_time_from_header,
+                    key="filter_time_from_header_input",
+                    label_visibility="collapsed"
+                )
+            with col_time_in2:
+                st.session_state.filter_time_to_header = st.time_input(
+                    "To",
+                    value=st.session_state.filter_time_to_header,
+                    key="filter_time_to_header_input",
+                    label_visibility="collapsed"
+                )
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Follow-up filter
+    st.markdown('<div class="header-filter-section">', unsafe_allow_html=True)
+    st.markdown("<h4>🔴 Follow-up</h4>", unsafe_allow_html=True)
+    st.session_state.filter_only_fu_header = st.checkbox(
+        "Show only follow-up clients",
+        value=st.session_state.filter_only_fu_header,
+        key="filter_only_fu_header_check"
+    )
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)  # Close header-filter-content
+    
+    # Apply button
+    if st.button("Apply Header Filters", use_container_width=True, type="primary"):
+        # Copy header filter values to sidebar filters
+        search_phone = st.session_state.filter_phone_header
+        search_name = st.session_state.filter_name_header
+        filter_by_date = st.session_state.filter_by_date_header
+        date_filter = st.session_state.filter_date_header if st.session_state.filter_by_date_header else None
+        filter_by_time = st.session_state.filter_by_time_header
+        time_from = st.session_state.filter_time_from_header if st.session_state.filter_by_time_header else None
+        time_to = st.session_state.filter_time_to_header if st.session_state.filter_by_time_header else None
+        only_fu = st.session_state.filter_only_fu_header
+        
+        # Close the dropdown
+        st.session_state.show_header_filters = False
+        st.rerun()
+    
+    st.markdown('</div>', unsafe_allow_html=True)  # Close header-filter-dropdown
+
+# Sidebar Filters (keep existing)
 st.sidebar.title("🔍 Filters")
 
 st.sidebar.subheader("📱 Phone Number")
@@ -789,7 +1153,7 @@ else:
 st.sidebar.subheader("🔴 Follow-up")
 only_fu = st.sidebar.checkbox("Show only follow-up clients")
 
-# Theme toggle button in sidebar
+# Theme toggle button in sidebar (keep existing)
 st.sidebar.divider()
 st.sidebar.subheader("🎨 Theme")
 
@@ -911,7 +1275,7 @@ def log_sent_message(phone: str, message: str, msg_type: str = "text"):
         return False
 
 
-# Fetch and filter contacts
+# Fetch and filter contacts (using sidebar filters as primary)
 contacts = fetch_contacts(only_fu)
 if search_phone:
     contacts = [c for c in contacts if search_phone.lower() in c["phone"].lower()]
