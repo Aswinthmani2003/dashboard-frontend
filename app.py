@@ -41,6 +41,9 @@ st.set_page_config(
 )
 check_password()
 
+# Initialize theme in session state
+if "theme" not in st.session_state:
+    st.session_state.theme = "dark"  # default to dark mode
 
 # Function to load and encode logo
 def get_base64_logo():
@@ -52,290 +55,353 @@ def get_base64_logo():
         return base64.b64encode(data).decode()
     return None
 
-
-# Custom CSS for authentic WhatsApp styling
-st.markdown("""
+# Custom CSS with dark and light mode support
+css = f"""
 <style>
-    /* Global dark theme */
-    .main {
-        background-color: #0d1418;
+    /* Theme variables */
+    :root {{
+        --main-bg: #0d1418;
+        --sidebar-bg: #111b21;
+        --header-bg: #202c33;
+        --contact-card-bg: #111b21;
+        --contact-card-hover: #202c33;
+        --contact-card-selected: #2a3942;
+        --text-primary: #e9edef;
+        --text-secondary: #8696a0;
+        --text-tertiary: #667781;
+        --border-color: #2a3942;
+        --border-color2: #3b4a54;
+        --message-bubble-user-bg: #202c33;
+        --message-bubble-bot-bg: #005c4b;
+        --button-bg: #00a884;
+        --button-hover: #06cf9c;
+        --delete-btn-bg: #dc3545;
+        --highlight-bg: #86745f;
+        --unread-badge: #ff3b30;
+        --scrollbar-track: #0d1418;
+        --scrollbar-thumb: #2a3942;
+        --update-section-bg: #111b21;
+        --send-section-bg: #111b21;
+        --chat-area-bg: #0d1418;
+        --pagination-section-bg: #111b21;
+    }}
+    
+    [data-theme="light"] {{
+        --main-bg: #ffffff;
+        --sidebar-bg: #f8f9fa;
+        --header-bg: #f0f2f5;
+        --contact-card-bg: #ffffff;
+        --contact-card-hover: #f0f2f5;
+        --contact-card-selected: #e4e6eb;
+        --text-primary: #1c1e21;
+        --text-secondary: #65676b;
+        --text-tertiary: #65676b;
+        --border-color: #dddfe2;
+        --border-color2: #ccd0d5;
+        --message-bubble-user-bg: #f0f2f5;
+        --message-bubble-bot-bg: #0084ff;
+        --button-bg: #0084ff;
+        --button-hover: #0073e6;
+        --delete-btn-bg: #dc3545;
+        --highlight-bg: #ffd700;
+        --unread-badge: #ff3b30;
+        --scrollbar-track: #f0f2f5;
+        --scrollbar-thumb: #aeb5bb;
+        --update-section-bg: #ffffff;
+        --send-section-bg: #ffffff;
+        --chat-area-bg: #ffffff;
+        --pagination-section-bg: #ffffff;
+    }}
+    
+    /* Global styling */
+    .main {{
+        background-color: var(--main-bg);
         padding: 0 !important;
-    }
+        transition: background-color 0.3s ease;
+    }}
     
     /* Remove default padding */
-    .block-container {
+    .block-container {{
         padding-top: 0 !important;
         padding-bottom: 0 !important;
         max-width: 100% !important;
-    }
+    }}
     
     /* Sidebar styling */
-    [data-testid="stSidebar"] {
-        background-color: #111b21;
-        border-right: 1px solid #2a3942;
-    }
+    [data-testid="stSidebar"] {{
+        background-color: var(--sidebar-bg);
+        border-right: 1px solid var(--border-color);
+        transition: background-color 0.3s ease, border-color 0.3s ease;
+    }}
     
     [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, 
-    [data-testid="stSidebar"] h3, [data-testid="stSidebar"] h4 {
-        color: #e9edef !important;
-    }
+    [data-testid="stSidebar"] h3, [data-testid="stSidebar"] h4 {{
+        color: var(--text-primary) !important;
+    }}
     
-    [data-testid="stSidebar"] label {
-        color: #8696a0 !important;
-    }
+    [data-testid="stSidebar"] label {{
+        color: var(--text-secondary) !important;
+    }}
     
-    [data-testid="stSidebar"] input {
-        background-color: #2a3942 !important;
-        color: #e9edef !important;
-        border: 1px solid #3b4a54 !important;
-    }
+    [data-testid="stSidebar"] input {{
+        background-color: var(--contact-card-hover) !important;
+        color: var(--text-primary) !important;
+        border: 1px solid var(--border-color2) !important;
+    }}
     
     /* Header */
-    .main-header {
-        background: #202c33;
+    .main-header {{
+        background: var(--header-bg);
         padding: 15px 20px;
         display: flex;
         align-items: center;
         gap: 15px;
-        border-bottom: 1px solid #2a3942;
+        border-bottom: 1px solid var(--border-color);
         margin-bottom: 0;
         position: sticky;
         top: 0;
         z-index: 999;
-    }
+        transition: background-color 0.3s ease, border-color 0.3s ease;
+    }}
     
-    .main-header h1 {
-        color: #e9edef;
+    .main-header h1 {{
+        color: var(--text-primary);
         margin: 0;
         font-size: 19px;
         font-weight: 400;
         flex: 1;
-    }
+    }}
     
-    .logo-img {
+    .logo-img {{
         width: 40px;
         height: 40px;
         border-radius: 50%;
         object-fit: cover;
-    }
+    }}
     
     /* Contact list */
-    .contact-card {
-        background-color: #111b21;
+    .contact-card {{
+        background-color: var(--contact-card-bg);
         padding: 12px 16px;
         cursor: pointer;
-        border-bottom: 1px solid #2a3942;
+        border-bottom: 1px solid var(--border-color);
         transition: background-color 0.2s;
         position: relative;
-    }
+    }}
     
-    .contact-card:hover {
-        background-color: #202c33;
-    }
+    .contact-card:hover {{
+        background-color: var(--contact-card-hover);
+    }}
     
-    .contact-card.selected {
-        background-color: #2a3942;
-    }
+    .contact-card.selected {{
+        background-color: var(--contact-card-selected);
+    }}
     
-    .contact-name {
-        color: #e9edef;
+    .contact-name {{
+        color: var(--text-primary);
         font-size: 16px;
         font-weight: 400;
         margin-bottom: 2px;
-    }
+    }}
     
-    .contact-phone {
-        color: #667781;
+    .contact-phone {{
+        color: var(--text-tertiary);
         font-size: 13px;
         margin-bottom: 3px;
-    }
+    }}
     
-    .contact-preview {
-        color: #8696a0;
+    .contact-preview {{
+        color: var(--text-secondary);
         font-size: 14px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-    }
+    }}
     
-    .contact-time {
+    .contact-time {{
         position: absolute;
         top: 12px;
         right: 16px;
-        color: #8696a0;
+        color: var(--text-secondary);
         font-size: 12px;
-    }
+    }}
     
-    .follow-up-dot {
-        color: #ff3b30;
+    .follow-up-dot {{
+        color: var(--unread-badge);
         font-weight: bold;
         margin-right: 5px;
-    }
+    }}
     
     /* Chat header */
-    .chat-header {
-        background: #202c33;
+    .chat-header {{
+        background: var(--header-bg);
         padding: 10px 20px;
         margin-bottom: 10px;
-        border-bottom: 1px solid #2a3942;
+        border-bottom: 1px solid var(--border-color);
         display: flex;
         justify-content: space-between;
         align-items: center;
-        border: 1px solid #3b4a54;
+        border: 1px solid var(--border-color2);
         border-radius: 8px;
-    }
+        transition: all 0.3s ease;
+    }}
     
-    .chat-header-info h3 {
-        color: #e9edef;
+    .chat-header-info h3 {{
+        color: var(--text-primary);
         margin: 0;
         font-size: 16px;
         font-weight: 400;
-    }
+    }}
     
-    .chat-header-info p {
-        color: #8696a0;
+    .chat-header-info p {{
+        color: var(--text-secondary);
         margin: 0;
         font-size: 13px;
-    }
+    }}
     
-    .unread-badge {
-        color: #ff3b30;
+    .unread-badge {{
+        color: var(--unread-badge);
         font-size: 13px;
         margin: 0 0 10px 20px;
-    }
+    }}
     
     /* Message container */
-    .message-row {
+    .message-row {{
         display: flex;
         margin-bottom: 12px;
         clear: both;
-    }
+    }}
     
-    .message-row.user {
+    .message-row.user {{
         justify-content: flex-start;
-    }
+    }}
     
-    .message-row.bot {
+    .message-row.bot {{
         justify-content: flex-end;
-    }
+    }}
     
     /* Message bubble */
-    .message-bubble {
+    .message-bubble {{
         max-width: 65%;
         padding: 8px 12px 8px 12px;
         border-radius: 8px;
         position: relative;
         box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
-    }
+    }}
     
-    .message-bubble.user {
-        background-color: #202c33;
-    }
+    .message-bubble.user {{
+        background-color: var(--message-bubble-user-bg);
+    }}
     
-    .message-bubble.bot {
-        background-color: #005c4b;
-    }
+    .message-bubble.bot {{
+        background-color: var(--message-bubble-bot-bg);
+    }}
     
-    .message-text {
-        color: #e9edef;
+    .message-text {{
+        color: var(--text-primary);
         font-size: 14.2px;
         line-height: 19px;
         margin-bottom: 4px;
         word-wrap: break-word;
-    }
+    }}
     
-    .message-time {
-        color: #8696a0;
+    .message-time {{
+        color: var(--text-secondary);
         font-size: 11px;
         text-align: right;
         margin-top: 4px;
-    }
+    }}
     
-    .message-meta {
-        color: #8696a0;
+    .message-meta {{
+        color: var(--text-secondary);
         font-size: 11px;
         margin-top: 4px;
-    }
+    }}
     
     /* Highlight for search matches */
-    .highlight {
-        background-color: #86745f;
+    .highlight {{
+        background-color: var(--highlight-bg);
         padding: 0 1px;
         border-radius: 2px;
-    }
+    }}
     
     /* Update section */
-    .update-section {
-        border: 1px solid #3b4a54;
+    .update-section {{
+        border: 1px solid var(--border-color2);
         border-radius: 8px;
         padding: 15px;
         margin-top: 20px;
-        background-color: #111b21;
-    }
+        background-color: var(--update-section-bg);
+        transition: all 0.3s ease;
+    }}
     
-    .update-section h3 {
-        color: #e9edef !important;
+    .update-section h3 {{
+        color: var(--text-primary) !important;
         font-size: 16px !important;
         margin-bottom: 15px !important;
-    }
+    }}
     
-    .send-section {
-        border: 1px solid #3b4a54;
+    .send-section {{
+        border: 1px solid var(--border-color2);
         border-radius: 8px;
         padding: 15px;
         margin-top: 20px;
         margin-bottom: 20px;
-        background-color: #111b21;
-    }
+        background-color: var(--send-section-bg);
+        transition: all 0.3s ease;
+    }}
     
-    .send-section h3 {
-        color: #e9edef !important;
+    .send-section h3 {{
+        color: var(--text-primary) !important;
         font-size: 16px !important;
         margin-bottom: 15px !important;
-    }
+    }}
     
-    .chat-area {
-        border: 1px solid #3b4a54;
+    .chat-area {{
+        border: 1px solid var(--border-color2);
         border-radius: 8px;
         padding: 15px;
         margin-bottom: 20px;
-        background-color: #0d1418;
+        background-color: var(--chat-area-bg);
         min-height: 1px;
-    }
+        transition: all 0.3s ease;
+    }}
     
-    .pagination-section {
-        border: 1px solid #3b4a54;
+    .pagination-section {{
+        border: 1px solid var(--border-color2);
         border-radius: 8px;
         padding: 15px;
         margin-bottom: 20px;
-        background-color: #111b21;
+        background-color: var(--pagination-section-bg);
         display: flex;
         align-items: center;
         justify-content: space-between;
-    }
+        transition: all 0.3s ease;
+    }}
     
-    .pagination-info {
-        color: #8696a0;
+    .pagination-info {{
+        color: var(--text-secondary);
         font-size: 14px;
         margin: 0;
         text-align: center;
         flex: 1;
-    }
+    }}
     
     /* Buttons */
-    .stButton > button {
-        background-color: #00a884 !important;
+    .stButton > button {{
+        background-color: var(--button-bg) !important;
         color: white !important;
         border: none !important;
         font-weight: 500 !important;
-    }
+        transition: background-color 0.3s ease;
+    }}
     
-    .stButton > button:hover {
-        background-color: #06cf9c !important;
-    }
+    .stButton > button:hover {{
+        background-color: var(--button-hover) !important;
+    }}
     
-    .delete-btn {
-        background-color: #dc3545 !important;
+    .delete-btn {{
+        background-color: var(--delete-btn-bg) !important;
         padding: 4px 8px !important;
         font-size: 11px !important;
         border-radius: 4px !important;
@@ -343,50 +409,98 @@ st.markdown("""
         border: none !important;
         cursor: pointer;
         margin-top: 4px;
-    }
+    }}
     
     /* Input fields */
-    .stTextInput input, .stTextArea textarea {
-        background-color: #2a3942 !important;
-        color: #e9edef !important;
-        border: 1px solid #3b4a54 !important;
-    }
+    .stTextInput input, .stTextArea textarea {{
+        background-color: var(--contact-card-hover) !important;
+        color: var(--text-primary) !important;
+        border: 1px solid var(--border-color2) !important;
+    }}
     
     /* Checkbox */
-    [data-testid="stCheckbox"] label {
-        color: #e9edef !important;
-    }
+    [data-testid="stCheckbox"] label {{
+        color: var(--text-primary) !important;
+    }}
+    
+    /* Selectbox */
+    .stSelectbox label {{
+        color: var(--text-primary) !important;
+    }}
+    
+    /* Radio buttons */
+    .stRadio label {{
+        color: var(--text-primary) !important;
+    }}
     
     /* Scrollbar */
-    ::-webkit-scrollbar {
+    ::-webkit-scrollbar {{
         width: 6px;
         height: 6px;
-    }
+    }}
     
-    ::-webkit-scrollbar-track {
-        background: #0d1418;
-    }
+    ::-webkit-scrollbar-track {{
+        background: var(--scrollbar-track);
+    }}
     
-    ::-webkit-scrollbar-thumb {
-        background: #2a3942;
+    ::-webkit-scrollbar-thumb {{
+        background: var(--scrollbar-thumb);
         border-radius: 3px;
-    }
+    }}
     
-    ::-webkit-scrollbar-thumb:hover {
-        background: #3b4a54;
-    }
+    ::-webkit-scrollbar-thumb:hover {{
+        background: var(--border-color2);
+    }}
     
     /* Hide streamlit menu/footer and header */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
+    #MainMenu {{visibility: hidden;}}
+    footer {{visibility: hidden;}}
+    header {{visibility: hidden;}}
     
     /* Override streamlit's default padding for header */
-    .main .block-container {
+    .main .block-container {{
         padding-top: 0rem !important;
-    }
+    }}
+    
+    /* Theme toggle button */
+    .theme-toggle {{
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 1000;
+    }}
+    
+    .theme-toggle button {{
+        background-color: var(--button-bg) !important;
+        color: white !important;
+        border-radius: 50% !important;
+        width: 50px !important;
+        height: 50px !important;
+        padding: 0 !important;
+        min-width: 50px !important;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        border: none !important;
+    }}
+    
+    .theme-toggle button:hover {{
+        background-color: var(--button-hover) !important;
+        transform: scale(1.05);
+    }}
 </style>
-""", unsafe_allow_html=True)
+"""
+
+# Apply the CSS
+st.markdown(css, unsafe_allow_html=True)
+
+# Inject JavaScript to set theme on body
+st.markdown(
+    f"""
+    <script>
+        document.body.setAttribute('data-theme', '{st.session_state.theme}');
+    </script>
+    """,
+    unsafe_allow_html=True
+)
 
 # Header with logo
 logo_base64 = get_base64_logo()
@@ -428,6 +542,25 @@ else:
 st.sidebar.subheader("🔴 Follow-up")
 only_fu = st.sidebar.checkbox("Show only follow-up clients")
 
+# Theme toggle button in sidebar
+st.sidebar.divider()
+st.sidebar.subheader("🎨 Theme")
+current_theme = st.session_state.theme
+theme_options = ["dark", "light"]
+theme_labels = ["🌙 Dark Mode", "☀️ Light Mode"]
+selected_theme = st.sidebar.radio(
+    "Select theme:",
+    options=theme_options,
+    index=theme_options.index(current_theme),
+    format_func=lambda x: theme_labels[theme_options.index(x)],
+    label_visibility="collapsed",
+    key="theme_selector"
+)
+
+# Update theme if changed
+if selected_theme != st.session_state.theme:
+    st.session_state.theme = selected_theme
+    st.rerun()
 
 # Helper functions
 def fetch_contacts(only_follow_up: bool):
@@ -801,3 +934,52 @@ with col2:
         
         st.markdown('</div>', unsafe_allow_html=True)  # Close update-section
 
+# Add floating theme toggle button
+st.markdown("""
+<div class="theme-toggle">
+    <div data-testid="stVerticalBlock">
+        <div style="display: flex; justify-content: center;">
+            <div data-testid="stVerticalBlockBorderWrapper">
+                <div style="display: flex; flex-direction: column;">
+                    <div style="display: flex; justify-content: center;">
+                        <button kind="primary" class="st-emotion-cache-1j4fphg edgvbvh10">
+                            {icon}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    // Update button icon based on current theme
+    const currentTheme = document.body.getAttribute('data-theme');
+    const buttonIcon = currentTheme === 'light' ? '🌙' : '☀️';
+    document.querySelector('.theme-toggle button').innerHTML = buttonIcon;
+    
+    // Add click handler to toggle theme
+    document.querySelector('.theme-toggle button').addEventListener('click', function() {
+        const currentTheme = document.body.getAttribute('data-theme');
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        
+        // Update theme attribute
+        document.body.setAttribute('data-theme', newTheme);
+        
+        // Update button icon
+        this.innerHTML = newTheme === 'light' ? '🌙' : '☀️';
+        
+        // Store theme in sessionStorage for persistence
+        sessionStorage.setItem('theme', newTheme);
+        
+        // Trigger Streamlit rerun to update session state
+        const event = new Event('themeChanged');
+        document.dispatchEvent(event);
+    });
+    
+    // Listen for theme changes from Streamlit
+    document.addEventListener('themeChanged', function() {{
+        // This event is dispatched when Streamlit updates the theme
+        // No additional action needed as CSS variables handle the visual change
+    }});
+</script>
+""".format(icon="☀️" if st.session_state.theme == "dark" else "🌙"), unsafe_allow_html=True)
