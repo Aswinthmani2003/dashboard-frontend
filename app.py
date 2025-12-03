@@ -37,33 +37,13 @@ def check_password():
 st.set_page_config(
     page_title="WhatsApp Chat Inbox",
     layout="wide",
-    initial_sidebar_state="collapsed"  # Start with sidebar collapsed
+    initial_sidebar_state="expanded"
 )
 check_password()
 
 # Initialize theme in session state
 if "theme" not in st.session_state:
     st.session_state.theme = "dark"  # default to dark mode
-
-# Initialize filter states
-if "filter_phone" not in st.session_state:
-    st.session_state.filter_phone = ""
-if "filter_name" not in st.session_state:
-    st.session_state.filter_name = ""
-if "filter_by_date" not in st.session_state:
-    st.session_state.filter_by_date = False
-if "filter_date" not in st.session_state:
-    st.session_state.filter_date = date.today()
-if "filter_by_time" not in st.session_state:
-    st.session_state.filter_by_time = False
-if "filter_time_from" not in st.session_state:
-    st.session_state.filter_time_from = time(0, 0)
-if "filter_time_to" not in st.session_state:
-    st.session_state.filter_time_to = time(23, 59)
-if "filter_only_fu" not in st.session_state:
-    st.session_state.filter_only_fu = False
-if "show_filters" not in st.session_state:
-    st.session_state.show_filters = False
 
 # Function to load and encode logo
 def get_base64_logo():
@@ -93,6 +73,27 @@ def get_css(theme):
                 max-width: 100% !important;
             }
             
+            /* Sidebar styling */
+            [data-testid="stSidebar"] {
+                background-color: #111b21;
+                border-right: 1px solid #2a3942;
+            }
+            
+            [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, 
+            [data-testid="stSidebar"] h3, [data-testid="stSidebar"] h4 {
+                color: #e9edef !important;
+            }
+            
+            [data-testid="stSidebar"] label {
+                color: #8696a0 !important;
+            }
+            
+            [data-testid="stSidebar"] input {
+                background-color: #2a3942 !important;
+                color: #e9edef !important;
+                border: 1px solid #3b4a54 !important;
+            }
+            
             /* Header */
             .main-header {
                 background: #202c33;
@@ -101,7 +102,7 @@ def get_css(theme):
                 align-items: center;
                 gap: 15px;
                 border-bottom: 1px solid #2a3942;
-                margin-bottom: 10px;
+                margin-bottom: 0;
                 position: sticky;
                 top: 0;
                 z-index: 999;
@@ -120,65 +121,6 @@ def get_css(theme):
                 height: 40px;
                 border-radius: 50%;
                 object-fit: cover;
-            }
-            
-            /* Header buttons container */
-            .header-buttons {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            }
-            
-            /* Filter section */
-            .filter-container {
-                background-color: #111b21;
-                border: 1px solid #2a3942;
-                border-radius: 8px;
-                padding: 0;
-                margin-bottom: 20px;
-                overflow: hidden;
-            }
-            
-            .filter-header {
-                background-color: #202c33;
-                padding: 15px 20px;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                cursor: pointer;
-                border-bottom: 1px solid #2a3942;
-            }
-            
-            .filter-header h3 {
-                color: #e9edef;
-                margin: 0;
-                font-size: 16px;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            }
-            
-            .filter-content {
-                padding: 20px;
-            }
-            
-            .filter-row {
-                display: flex;
-                gap: 20px;
-                margin-bottom: 15px;
-                flex-wrap: wrap;
-            }
-            
-            .filter-group {
-                flex: 1;
-                min-width: 200px;
-            }
-            
-            .filter-group label {
-                color: #8696a0;
-                font-size: 14px;
-                margin-bottom: 5px;
-                display: block;
             }
             
             /* Contact list */
@@ -429,13 +371,6 @@ def get_css(theme):
                 color: #e9edef !important;
             }
             
-            /* Date and time inputs */
-            .stDateInput input, .stTimeInput input {
-                background-color: #2a3942 !important;
-                color: #e9edef !important;
-                border: 1px solid #3b4a54 !important;
-            }
-            
             /* Scrollbar */
             ::-webkit-scrollbar {
                 width: 6px;
@@ -464,21 +399,6 @@ def get_css(theme):
             .main .block-container {
                 padding-top: 0rem !important;
             }
-            
-            /* Filter action buttons */
-            .filter-actions {
-                display: flex;
-                gap: 10px;
-                margin-top: 20px;
-                justify-content: flex-end;
-            }
-            
-            /* Filter toggle and theme buttons row */
-            .top-buttons-row {
-                display: flex;
-                gap: 10px;
-                margin-bottom: 15px;
-            }
         </style>
         """
     else:  # light theme
@@ -497,6 +417,27 @@ def get_css(theme):
                 max-width: 100% !important;
             }
             
+            /* Sidebar styling */
+            [data-testid="stSidebar"] {
+                background-color: #f8f9fa;
+                border-right: 1px solid #dddfe2;
+            }
+            
+            [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, 
+            [data-testid="stSidebar"] h3, [data-testid="stSidebar"] h4 {
+                color: #1c1e21 !important;
+            }
+            
+            [data-testid="stSidebar"] label {
+                color: #65676b !important;
+            }
+            
+            [data-testid="stSidebar"] input {
+                background-color: #ffffff !important;
+                color: #1c1e21 !important;
+                border: 1px solid #ccd0d5 !important;
+            }
+            
             /* Header */
             .main-header {
                 background: #f0f2f5;
@@ -505,7 +446,7 @@ def get_css(theme):
                 align-items: center;
                 gap: 15px;
                 border-bottom: 1px solid #dddfe2;
-                margin-bottom: 10px;
+                margin-bottom: 0;
                 position: sticky;
                 top: 0;
                 z-index: 999;
@@ -524,65 +465,6 @@ def get_css(theme):
                 height: 40px;
                 border-radius: 50%;
                 object-fit: cover;
-            }
-            
-            /* Header buttons container */
-            .header-buttons {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            }
-            
-            /* Filter section */
-            .filter-container {
-                background-color: #ffffff;
-                border: 1px solid #dddfe2;
-                border-radius: 8px;
-                padding: 0;
-                margin-bottom: 20px;
-                overflow: hidden;
-            }
-            
-            .filter-header {
-                background-color: #f0f2f5;
-                padding: 15px 20px;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                cursor: pointer;
-                border-bottom: 1px solid #dddfe2;
-            }
-            
-            .filter-header h3 {
-                color: #1c1e21;
-                margin: 0;
-                font-size: 16px;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            }
-            
-            .filter-content {
-                padding: 20px;
-            }
-            
-            .filter-row {
-                display: flex;
-                gap: 20px;
-                margin-bottom: 15px;
-                flex-wrap: wrap;
-            }
-            
-            .filter-group {
-                flex: 1;
-                min-width: 200px;
-            }
-            
-            .filter-group label {
-                color: #65676b;
-                font-size: 14px;
-                margin-bottom: 5px;
-                display: block;
             }
             
             /* Contact list */
@@ -833,13 +715,6 @@ def get_css(theme):
                 color: #1c1e21 !important;
             }
             
-            /* Date and time inputs */
-            .stDateInput input, .stTimeInput input {
-                background-color: #ffffff !important;
-                color: #1c1e21 !important;
-                border: 1px solid #ccd0d5 !important;
-            }
-            
             /* Scrollbar */
             ::-webkit-scrollbar {
                 width: 6px;
@@ -868,21 +743,6 @@ def get_css(theme):
             .main .block-container {
                 padding-top: 0rem !important;
             }
-            
-            /* Filter action buttons */
-            .filter-actions {
-                display: flex;
-                gap: 10px;
-                margin-top: 20px;
-                justify-content: flex-end;
-            }
-            
-            /* Filter toggle and theme buttons row */
-            .top-buttons-row {
-                display: flex;
-                gap: 10px;
-                margin-bottom: 15px;
-            }
         </style>
         """
 
@@ -905,105 +765,43 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# Create a row for filter toggle and theme buttons
-col_filter, col_theme = st.columns([1, 1])
+# Sidebar Filters
+st.sidebar.title("🔍 Filters")
 
-with col_filter:
-    # Filter toggle button
-    filter_icon = "▼" if st.session_state.show_filters else "▶"
-    if st.button(f"{filter_icon} Filters", key="toggle_filters", use_container_width=True):
-        st.session_state.show_filters = not st.session_state.show_filters
+st.sidebar.subheader("📱 Phone Number")
+search_phone = st.sidebar.text_input("Phone Search", placeholder="Search by phone...", label_visibility="collapsed", key="phone")
+
+st.sidebar.subheader("👤 Client Name")
+search_name = st.sidebar.text_input("Name Search", placeholder="Search by name...", label_visibility="collapsed", key="name")
+
+st.sidebar.subheader("📅 Date")
+filter_by_date = st.sidebar.checkbox("Enable date filter")
+date_filter = st.sidebar.date_input("Select date", value=date.today()) if filter_by_date else None
+
+st.sidebar.subheader("🕐 Time Range")
+filter_by_time = st.sidebar.checkbox("Enable time filter")
+if filter_by_time:
+    time_from = st.sidebar.time_input("From", value=time(0, 0))
+    time_to = st.sidebar.time_input("To", value=time(23, 59))
+else:
+    time_from = time_to = None
+
+st.sidebar.subheader("🔴 Follow-up")
+only_fu = st.sidebar.checkbox("Show only follow-up clients")
+
+# Theme toggle button in sidebar
+st.sidebar.divider()
+st.sidebar.subheader("🎨 Theme")
+
+# Simple toggle button
+if st.session_state.theme == "dark":
+    if st.sidebar.button("☀️ Switch to Light Mode", use_container_width=True, key="theme_toggle"):
+        st.session_state.theme = "light"
         st.rerun()
-
-with col_theme:
-    # Theme toggle button
-    if st.session_state.theme == "dark":
-        if st.button("☀️ Light Mode", key="theme_toggle", use_container_width=True):
-            st.session_state.theme = "light"
-            st.rerun()
-    else:
-        if st.button("🌙 Dark Mode", key="theme_toggle", use_container_width=True):
-            st.session_state.theme = "dark"
-            st.rerun()
-
-# Filter section (dropdown)
-if st.session_state.show_filters:
-    st.markdown('<div class="filter-container">', unsafe_allow_html=True)
-    st.markdown('<div class="filter-header">', unsafe_allow_html=True)
-    st.markdown('<h3><span>🔍</span> Filter Options</h3>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    st.markdown('<div class="filter-content">', unsafe_allow_html=True)
-    
-    # Filter row 1: Phone and Name
-    col1, col2 = st.columns(2)
-    with col1:
-        st.session_state.filter_phone = st.text_input(
-            "📱 Phone Number",
-            value=st.session_state.filter_phone,
-            placeholder="Search by phone...",
-            key="filter_phone_input"
-        )
-    
-    with col2:
-        st.session_state.filter_name = st.text_input(
-            "👤 Client Name",
-            value=st.session_state.filter_name,
-            placeholder="Search by name...",
-            key="filter_name_input"
-        )
-    
-    # Filter row 2: Date
-    st.session_state.filter_by_date = st.checkbox(
-        "📅 Enable date filter",
-        value=st.session_state.filter_by_date,
-        key="filter_by_date_check"
-    )
-    
-    if st.session_state.filter_by_date:
-        st.session_state.filter_date = st.date_input(
-            "Select date",
-            value=st.session_state.filter_date,
-            key="filter_date_input"
-        )
-    
-    # Filter row 3: Time Range
-    st.session_state.filter_by_time = st.checkbox(
-        "🕐 Enable time filter",
-        value=st.session_state.filter_by_time,
-        key="filter_by_time_check"
-    )
-    
-    if st.session_state.filter_by_time:
-        col_time1, col_time2 = st.columns(2)
-        with col_time1:
-            st.session_state.filter_time_from = st.time_input(
-                "From time",
-                value=st.session_state.filter_time_from,
-                key="filter_time_from_input"
-            )
-        with col_time2:
-            st.session_state.filter_time_to = st.time_input(
-                "To time",
-                value=st.session_state.filter_time_to,
-                key="filter_time_to_input"
-            )
-    
-    # Filter row 4: Follow-up
-    st.session_state.filter_only_fu = st.checkbox(
-        "🔴 Show only follow-up clients",
-        value=st.session_state.filter_only_fu,
-        key="filter_only_fu_check"
-    )
-    
-    # Apply Filters button only (removed Clear Filters button)
-    st.markdown('<div class="filter-actions">', unsafe_allow_html=True)
-    if st.button("Apply Filters", use_container_width=True, type="primary"):
+else:
+    if st.sidebar.button("🌙 Switch to Dark Mode", use_container_width=True, key="theme_toggle"):
+        st.session_state.theme = "dark"
         st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)  # Close filter-actions
-    
-    st.markdown('</div>', unsafe_allow_html=True)  # Close filter-content
-    st.markdown('</div>', unsafe_allow_html=True)  # Close filter-container
 
 # Helper functions
 def fetch_contacts(only_follow_up: bool):
@@ -1113,20 +911,20 @@ def log_sent_message(phone: str, message: str, msg_type: str = "text"):
         return False
 
 
-# Fetch and filter contacts using session state values
-contacts = fetch_contacts(st.session_state.filter_only_fu)
-if st.session_state.filter_phone:
-    contacts = [c for c in contacts if st.session_state.filter_phone.lower() in c["phone"].lower()]
-if st.session_state.filter_name:
-    contacts = [c for c in contacts if c.get("client_name") and st.session_state.filter_name.lower() in c["client_name"].lower()]
+# Fetch and filter contacts
+contacts = fetch_contacts(only_fu)
+if search_phone:
+    contacts = [c for c in contacts if search_phone.lower() in c["phone"].lower()]
+if search_name:
+    contacts = [c for c in contacts if c.get("client_name") and search_name.lower() in c["client_name"].lower()]
 
 if not contacts:
     st.info("🔍 No contacts found")
     st.stop()
 
-# Initialize session state for selected phone
+# Initialize session state
 if "selected_phone" not in st.session_state:
-    st.session_state.selected_phone = contacts[0]["phone"] if contacts else ""
+    st.session_state.selected_phone = contacts[0]["phone"]
 
 if "conv_offset" not in st.session_state:
     st.session_state.conv_offset = 0
@@ -1138,6 +936,7 @@ if "auto_refresh" not in st.session_state:
     st.session_state.auto_refresh = True
 
 CONV_LIMIT = 20  # recommended
+
 
 # Layout
 col1, col2 = st.columns([1, 2.5])
@@ -1167,14 +966,9 @@ with col1:
 
 with col2:
     phone = st.session_state.selected_phone
-    if not phone and contacts:
-        phone = contacts[0]["phone"]
-        st.session_state.selected_phone = phone
-    
-    selected = next((c for c in contacts if c["phone"] == phone), None) if phone else None
+    selected = next((c for c in contacts if c["phone"] == phone), None)
     
     if not selected:
-        st.info("📭 Select a contact to view messages")
         st.stop()
     
     client_name = selected["client_name"] or phone
@@ -1228,11 +1022,6 @@ with col2:
     
     # Fetch messages with pagination
     conv = fetch_conversation(phone, limit=CONV_LIMIT, offset=st.session_state.conv_offset)
-    
-    # Apply date and time filters to messages
-    date_filter = st.session_state.filter_date if st.session_state.filter_by_date else None
-    time_from = st.session_state.filter_time_from if st.session_state.filter_by_time else None
-    time_to = st.session_state.filter_time_to if st.session_state.filter_by_time else None
     conv = filter_messages(conv, date_filter, time_from, time_to)
     
     # Sort messages by timestamp (oldest first) so new messages appear at bottom
