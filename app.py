@@ -1346,29 +1346,22 @@ with col2:
                     key=tmpl_key
                 )
 
-        # When you send a message, ensure that it goes to the bottom of the chat.
-if st.button("📨 Send via WhatsApp", use_container_width=True, key=f"send_{phone}"):
-    msg_clean = (new_msg or "").strip()
-    if not msg_clean:
-        st.warning("Message cannot be empty.")
-    else:
-        msg_type = "template" if msg_type_label == "Template" else "text"
-        ok = send_whatsapp_message(phone, msg_clean, msg_type, template_name)
-        if ok:
-            st.success("Message sent ✅")
-            # Add the newly sent message to the conversation
-            new_message = {
-                "message": msg_clean,
-                "timestamp": datetime.now().isoformat(),
-                "direction": "user",
-            }
-            conv.append(new_message)  # Append it to the conversation
-            st.session_state.conv_offset = 0  # Reset the offset so new messages show at the bottom
-            # Wait a moment for the message to be logged
-            import time
-            time.sleep(0.5)
-            st.rerun()  # Rerun to update UI with the newly sent message
-
+        if st.button("📨 Send via WhatsApp", use_container_width=True, key=f"send_{phone}"):
+            msg_clean = (new_msg or "").strip()
+            if not msg_clean:
+                st.warning("Message cannot be empty.")
+            else:
+                msg_type = "template" if msg_type_label == "Template" else "text"
+                ok = send_whatsapp_message(phone, msg_clean, msg_type, template_name)
+                if ok:
+                    st.success("Message sent ✅")
+                    # Clear draft by deleting the key instead of setting to empty string
+                    if draft_key in st.session_state:
+                        del st.session_state[draft_key]
+                    # Wait a moment for the message to be logged
+                    import time
+                    time.sleep(0.5)
+                    st.rerun()
         
         st.markdown('</div>', unsafe_allow_html=True)  # Close send-section
         
@@ -1399,6 +1392,3 @@ if st.button("📨 Send via WhatsApp", use_container_width=True, key=f"send_{pho
                     st.error(f"Error: {resp.text}")
             
             st.markdown('</div>', unsafe_allow_html=True)  # Close update-section
-
-
-
