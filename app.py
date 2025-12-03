@@ -745,6 +745,25 @@ def get_css(theme):
             }
         </style>
         """
+st.markdown("""
+<style>
+    /* Ensure sidebar content is not hidden or clipped */
+    .block-container {
+        overflow: visible !important;
+    }
+
+    /* Ensure sidebar itself is not hidden */
+    [data-testid="stSidebar"] {
+        visibility: visible !important;
+        display: block !important;
+    }
+
+    /* Ensure the sidebar elements appear on top if needed */
+    .stSidebar {
+        z-index: 1000;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # Apply CSS based on current theme
 st.markdown(get_css(st.session_state.theme), unsafe_allow_html=True)
@@ -1183,3 +1202,4 @@ with col2:
                     st.error(f"Error: {resp.text}")
             
             st.markdown('</div>', unsafe_allow_html=True)  # Close update-section
+
