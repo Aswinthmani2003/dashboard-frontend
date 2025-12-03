@@ -1085,13 +1085,6 @@ with col2:
             st.markdown(message_html, unsafe_allow_html=True)
         
         st.markdown('</div>', unsafe_allow_html=True)  # Close chat-area
-
-        # Add the scroll to the bottom script
-st.markdown("""
-<script>
-    window.scrollTo(0, document.body.scrollHeight);
-</script>
-""", unsafe_allow_html=True)
         
         # Pagination controls with centered info
         st.markdown('<div class="pagination-section">', unsafe_allow_html=True)
@@ -1218,3 +1211,4 @@ st.markdown("""
     setTimeout(scrollToBottom, 500);
 </script>
 """, unsafe_allow_html=True)
+
