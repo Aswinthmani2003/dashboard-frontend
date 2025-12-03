@@ -37,13 +37,33 @@ def check_password():
 st.set_page_config(
     page_title="WhatsApp Chat Inbox",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"  # Start with sidebar collapsed
 )
 check_password()
 
 # Initialize theme in session state
 if "theme" not in st.session_state:
     st.session_state.theme = "dark"  # default to dark mode
+
+# Initialize filter states
+if "filter_phone" not in st.session_state:
+    st.session_state.filter_phone = ""
+if "filter_name" not in st.session_state:
+    st.session_state.filter_name = ""
+if "filter_by_date" not in st.session_state:
+    st.session_state.filter_by_date = False
+if "filter_date" not in st.session_state:
+    st.session_state.filter_date = date.today()
+if "filter_by_time" not in st.session_state:
+    st.session_state.filter_by_time = False
+if "filter_time_from" not in st.session_state:
+    st.session_state.filter_time_from = time(0, 0)
+if "filter_time_to" not in st.session_state:
+    st.session_state.filter_time_to = time(23, 59)
+if "filter_only_fu" not in st.session_state:
+    st.session_state.filter_only_fu = False
+if "show_filter_modal" not in st.session_state:
+    st.session_state.show_filter_modal = False
 
 # Function to load and encode logo
 def get_base64_logo():
@@ -73,27 +93,6 @@ def get_css(theme):
                 max-width: 100% !important;
             }
             
-            /* Sidebar styling */
-            [data-testid="stSidebar"] {
-                background-color: #111b21;
-                border-right: 1px solid #2a3942;
-            }
-            
-            [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, 
-            [data-testid="stSidebar"] h3, [data-testid="stSidebar"] h4 {
-                color: #e9edef !important;
-            }
-            
-            [data-testid="stSidebar"] label {
-                color: #8696a0 !important;
-            }
-            
-            [data-testid="stSidebar"] input {
-                background-color: #2a3942 !important;
-                color: #e9edef !important;
-                border: 1px solid #3b4a54 !important;
-            }
-            
             /* Header */
             .main-header {
                 background: #202c33;
@@ -102,7 +101,7 @@ def get_css(theme):
                 align-items: center;
                 gap: 15px;
                 border-bottom: 1px solid #2a3942;
-                margin-bottom: 0;
+                margin-bottom: 20px;
                 position: sticky;
                 top: 0;
                 z-index: 999;
@@ -338,6 +337,20 @@ def get_css(theme):
                 background-color: #06cf9c !important;
             }
             
+            .header-button {
+                background-color: #2a3942 !important;
+                color: #e9edef !important;
+                border: 1px solid #3b4a54 !important;
+                padding: 8px 16px !important;
+                border-radius: 6px !important;
+                font-size: 14px !important;
+                margin-left: 10px !important;
+            }
+            
+            .header-button:hover {
+                background-color: #3b4a54 !important;
+            }
+            
             .delete-btn {
                 background-color: #dc3545 !important;
                 padding: 4px 8px !important;
@@ -347,6 +360,75 @@ def get_css(theme):
                 border: none !important;
                 cursor: pointer;
                 margin-top: 4px;
+            }
+            
+            /* Modal styles */
+            .modal-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: rgba(0, 0, 0, 0.7);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+            }
+            
+            .modal-content {
+                background-color: #111b21;
+                border-radius: 10px;
+                padding: 25px;
+                width: 90%;
+                max-width: 500px;
+                border: 1px solid #3b4a54;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            }
+            
+            .modal-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 20px;
+                border-bottom: 1px solid #2a3942;
+                padding-bottom: 15px;
+            }
+            
+            .modal-header h2 {
+                color: #e9edef;
+                margin: 0;
+                font-size: 20px;
+            }
+            
+            .close-button {
+                background: none;
+                border: none;
+                color: #8696a0;
+                font-size: 24px;
+                cursor: pointer;
+                padding: 0;
+                width: 30px;
+                height: 30px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+            }
+            
+            .close-button:hover {
+                background-color: #2a3942;
+                color: #e9edef;
+            }
+            
+            .filter-section {
+                margin-bottom: 20px;
+            }
+            
+            .filter-section h4 {
+                color: #e9edef;
+                margin-bottom: 10px;
+                font-size: 16px;
             }
             
             /* Input fields */
@@ -369,6 +451,13 @@ def get_css(theme):
             /* Radio buttons */
             .stRadio label {
                 color: #e9edef !important;
+            }
+            
+            /* Date and time inputs */
+            .stDateInput input, .stTimeInput input {
+                background-color: #2a3942 !important;
+                color: #e9edef !important;
+                border: 1px solid #3b4a54 !important;
             }
             
             /* Scrollbar */
@@ -399,6 +488,13 @@ def get_css(theme):
             .main .block-container {
                 padding-top: 0rem !important;
             }
+            
+            /* Header buttons container */
+            .header-buttons {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
         </style>
         """
     else:  # light theme
@@ -417,27 +513,6 @@ def get_css(theme):
                 max-width: 100% !important;
             }
             
-            /* Sidebar styling */
-            [data-testid="stSidebar"] {
-                background-color: #f8f9fa;
-                border-right: 1px solid #dddfe2;
-            }
-            
-            [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, 
-            [data-testid="stSidebar"] h3, [data-testid="stSidebar"] h4 {
-                color: #1c1e21 !important;
-            }
-            
-            [data-testid="stSidebar"] label {
-                color: #65676b !important;
-            }
-            
-            [data-testid="stSidebar"] input {
-                background-color: #ffffff !important;
-                color: #1c1e21 !important;
-                border: 1px solid #ccd0d5 !important;
-            }
-            
             /* Header */
             .main-header {
                 background: #f0f2f5;
@@ -446,7 +521,7 @@ def get_css(theme):
                 align-items: center;
                 gap: 15px;
                 border-bottom: 1px solid #dddfe2;
-                margin-bottom: 0;
+                margin-bottom: 20px;
                 position: sticky;
                 top: 0;
                 z-index: 999;
@@ -682,6 +757,20 @@ def get_css(theme):
                 background-color: #0073e6 !important;
             }
             
+            .header-button {
+                background-color: #e4e6eb !important;
+                color: #1c1e21 !important;
+                border: 1px solid #ccd0d5 !important;
+                padding: 8px 16px !important;
+                border-radius: 6px !important;
+                font-size: 14px !important;
+                margin-left: 10px !important;
+            }
+            
+            .header-button:hover {
+                background-color: #d8dadf !important;
+            }
+            
             .delete-btn {
                 background-color: #dc3545 !important;
                 padding: 4px 8px !important;
@@ -691,6 +780,75 @@ def get_css(theme):
                 border: none !important;
                 cursor: pointer;
                 margin-top: 4px;
+            }
+            
+            /* Modal styles */
+            .modal-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: rgba(0, 0, 0, 0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+            }
+            
+            .modal-content {
+                background-color: #ffffff;
+                border-radius: 10px;
+                padding: 25px;
+                width: 90%;
+                max-width: 500px;
+                border: 1px solid #ccd0d5;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            }
+            
+            .modal-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 20px;
+                border-bottom: 1px solid #dddfe2;
+                padding-bottom: 15px;
+            }
+            
+            .modal-header h2 {
+                color: #1c1e21;
+                margin: 0;
+                font-size: 20px;
+            }
+            
+            .close-button {
+                background: none;
+                border: none;
+                color: #65676b;
+                font-size: 24px;
+                cursor: pointer;
+                padding: 0;
+                width: 30px;
+                height: 30px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+            }
+            
+            .close-button:hover {
+                background-color: #f0f2f5;
+                color: #1c1e21;
+            }
+            
+            .filter-section {
+                margin-bottom: 20px;
+            }
+            
+            .filter-section h4 {
+                color: #1c1e21;
+                margin-bottom: 10px;
+                font-size: 16px;
             }
             
             /* Input fields */
@@ -713,6 +871,13 @@ def get_css(theme):
             /* Radio buttons */
             .stRadio label {
                 color: #1c1e21 !important;
+            }
+            
+            /* Date and time inputs */
+            .stDateInput input, .stTimeInput input {
+                background-color: #ffffff !important;
+                color: #1c1e21 !important;
+                border: 1px solid #ccd0d5 !important;
             }
             
             /* Scrollbar */
@@ -743,27 +908,15 @@ def get_css(theme):
             .main .block-container {
                 padding-top: 0rem !important;
             }
+            
+            /* Header buttons container */
+            .header-buttons {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
         </style>
         """
-st.markdown("""
-<style>
-    /* Ensure sidebar content is not hidden or clipped */
-    .block-container {
-        overflow: visible !important;
-    }
-
-    /* Ensure sidebar itself is not hidden */
-    [data-testid="stSidebar"] {
-        visibility: visible !important;
-        display: block !important;
-    }
-
-    /* Ensure the sidebar elements appear on top if needed */
-    .stSidebar {
-        z-index: 1000;
-    }
-</style>
-""", unsafe_allow_html=True)
 
 # Apply CSS based on current theme
 st.markdown(get_css(st.session_state.theme), unsafe_allow_html=True)
@@ -777,55 +930,173 @@ else:
     logo_url = "https://drive.google.com/uc?export=view&id=1NSTzTZ_gusa-c4Sc5dZelth-Djft0Zca"
     logo_html = f'<img src="{logo_url}" class="logo-img" onerror="this.style.display=\'none\'">'
 
+# Create header with buttons
 st.markdown(f"""
 <div class="main-header">
     {logo_html}
     <h1>WhatsApp Chat Inbox – Amirtharaj Investment</h1>
+    <div class="header-buttons">
+        <button class="header-button" onclick="showFilterModal()">🔍 Filters</button>
+        <button class="header-button" onclick="toggleTheme()">🎨 Theme</button>
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
-# Sidebar Filters
-st.sidebar.title("🔍 Filters")
+# Add JavaScript for modal and theme toggle
+st.markdown("""
+<script>
+function showFilterModal() {
+    // Send a message to Streamlit to open the filter modal
+    window.parent.postMessage({type: 'streamlit:setComponentValue', value: 'open_filter_modal'}, '*');
+}
 
-st.sidebar.subheader("📱 Phone Number")
-search_phone = st.sidebar.text_input("Phone Search", placeholder="Search by phone...", label_visibility="collapsed", key="phone")
+function closeFilterModal() {
+    // Send a message to Streamlit to close the filter modal
+    window.parent.postMessage({type: 'streamlit:setComponentValue', value: 'close_filter_modal'}, '*');
+}
 
-st.sidebar.subheader("👤 Client Name")
-search_name = st.sidebar.text_input("Name Search", placeholder="Search by name...", label_visibility="collapsed", key="name")
+function toggleTheme() {
+    // Send a message to Streamlit to toggle theme
+    window.parent.postMessage({type: 'streamlit:setComponentValue', value: 'toggle_theme'}, '*');
+}
 
-st.sidebar.subheader("📅 Date")
-filter_by_date = st.sidebar.checkbox("Enable date filter")
-date_filter = st.sidebar.date_input("Select date", value=date.today()) if filter_by_date else None
+// Listen for messages from Streamlit
+window.addEventListener('message', function(event) {
+    if (event.data.type === 'streamlit:componentValue') {
+        if (event.data.value === 'theme_toggled') {
+            window.location.reload();
+        }
+    }
+});
+</script>
+""", unsafe_allow_html=True)
 
-st.sidebar.subheader("🕐 Time Range")
-filter_by_time = st.sidebar.checkbox("Enable time filter")
-if filter_by_time:
-    time_from = st.sidebar.time_input("From", value=time(0, 0))
-    time_to = st.sidebar.time_input("To", value=time(23, 59))
-else:
-    time_from = time_to = None
+# Create filter modal using Streamlit elements
+if st.session_state.show_filter_modal:
+    # Create a modal overlay using columns and containers
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col2:
+        # Modal container
+        st.markdown('<div class="modal-overlay">', unsafe_allow_html=True)
+        st.markdown('<div class="modal-content">', unsafe_allow_html=True)
+        
+        # Modal header
+        col_header1, col_header2 = st.columns([5, 1])
+        with col_header1:
+            st.markdown("<h2>🔍 Filters</h2>", unsafe_allow_html=True)
+        with col_header2:
+            if st.button("✕", key="close_modal", help="Close"):
+                st.session_state.show_filter_modal = False
+                st.rerun()
+        
+        # Filter sections
+        st.markdown('<div class="filter-section">', unsafe_allow_html=True)
+        st.markdown("<h4>📱 Phone Number</h4>", unsafe_allow_html=True)
+        st.session_state.filter_phone = st.text_input(
+            "Search by phone number",
+            value=st.session_state.filter_phone,
+            placeholder="Enter phone number...",
+            key="filter_phone_input"
+        )
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="filter-section">', unsafe_allow_html=True)
+        st.markdown("<h4>👤 Client Name</h4>", unsafe_allow_html=True)
+        st.session_state.filter_name = st.text_input(
+            "Search by client name",
+            value=st.session_state.filter_name,
+            placeholder="Enter client name...",
+            key="filter_name_input"
+        )
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="filter-section">', unsafe_allow_html=True)
+        st.markdown("<h4>📅 Date Filter</h4>", unsafe_allow_html=True)
+        st.session_state.filter_by_date = st.checkbox(
+            "Enable date filter",
+            value=st.session_state.filter_by_date,
+            key="filter_by_date_check"
+        )
+        if st.session_state.filter_by_date:
+            st.session_state.filter_date = st.date_input(
+                "Select date",
+                value=st.session_state.filter_date,
+                key="filter_date_input"
+            )
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="filter-section">', unsafe_allow_html=True)
+        st.markdown("<h4>🕐 Time Range</h4>", unsafe_allow_html=True)
+        st.session_state.filter_by_time = st.checkbox(
+            "Enable time filter",
+            value=st.session_state.filter_by_time,
+            key="filter_by_time_check"
+        )
+        if st.session_state.filter_by_time:
+            col_time1, col_time2 = st.columns(2)
+            with col_time1:
+                st.session_state.filter_time_from = st.time_input(
+                    "From",
+                    value=st.session_state.filter_time_from,
+                    key="filter_time_from_input"
+                )
+            with col_time2:
+                st.session_state.filter_time_to = st.time_input(
+                    "To",
+                    value=st.session_state.filter_time_to,
+                    key="filter_time_to_input"
+                )
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="filter-section">', unsafe_allow_html=True)
+        st.markdown("<h4>🔴 Follow-up</h4>", unsafe_allow_html=True)
+        st.session_state.filter_only_fu = st.checkbox(
+            "Show only follow-up clients",
+            value=st.session_state.filter_only_fu,
+            key="filter_only_fu_check"
+        )
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Action buttons
+        col_btn1, col_btn2 = st.columns(2)
+        with col_btn1:
+            if st.button("Apply Filters", use_container_width=True, type="primary"):
+                st.session_state.show_filter_modal = False
+                st.rerun()
+        with col_btn2:
+            if st.button("Clear Filters", use_container_width=True):
+                st.session_state.filter_phone = ""
+                st.session_state.filter_name = ""
+                st.session_state.filter_by_date = False
+                st.session_state.filter_date = date.today()
+                st.session_state.filter_by_time = False
+                st.session_state.filter_time_from = time(0, 0)
+                st.session_state.filter_time_to = time(23, 59)
+                st.session_state.filter_only_fu = False
+                st.session_state.show_filter_modal = False
+                st.rerun()
+        
+        st.markdown('</div>', unsafe_allow_html=True)  # Close modal-content
+        st.markdown('</div>', unsafe_allow_html=True)  # Close modal-overlay
 
-st.sidebar.subheader("🔴 Follow-up")
-only_fu = st.sidebar.checkbox("Show only follow-up clients")
-
-# Theme toggle button in sidebar
-st.sidebar.divider()
-st.sidebar.subheader("🎨 Theme")
-
-# Simple toggle button
-if st.session_state.theme == "dark":
-    if st.sidebar.button("☀️ Switch to Light Mode", use_container_width=True, key="theme_toggle"):
-        st.session_state.theme = "light"
+# Add buttons in main area to open filter modal and toggle theme
+col_btn_main1, col_btn_main2, col_btn_main3 = st.columns([6, 1, 1])
+with col_btn_main1:
+    pass
+with col_btn_main2:
+    if st.button("🔍 Filters", key="open_filter_button", use_container_width=True):
+        st.session_state.show_filter_modal = True
         st.rerun()
-else:
-    if st.sidebar.button("🌙 Switch to Dark Mode", use_container_width=True, key="theme_toggle"):
-        st.session_state.theme = "dark"
-        st.rerun()
-
-# Add a simple sidebar expand/collapse section at the bottom
-st.sidebar.divider()
-st.sidebar.markdown("### 🎛️ Sidebar Control")
-st.sidebar.markdown("Use the **arrow button** at the top-right corner of the sidebar to expand/collapse.")
+with col_btn_main3:
+    if st.session_state.theme == "dark":
+        if st.button("☀️ Light", key="theme_button", use_container_width=True):
+            st.session_state.theme = "light"
+            st.rerun()
+    else:
+        if st.button("🌙 Dark", key="theme_button", use_container_width=True):
+            st.session_state.theme = "dark"
+            st.rerun()
 
 # Helper functions
 def fetch_contacts(only_follow_up: bool):
@@ -935,20 +1206,20 @@ def log_sent_message(phone: str, message: str, msg_type: str = "text"):
         return False
 
 
-# Fetch and filter contacts
-contacts = fetch_contacts(only_fu)
-if search_phone:
-    contacts = [c for c in contacts if search_phone.lower() in c["phone"].lower()]
-if search_name:
-    contacts = [c for c in contacts if c.get("client_name") and search_name.lower() in c["client_name"].lower()]
+# Fetch and filter contacts using session state values
+contacts = fetch_contacts(st.session_state.filter_only_fu)
+if st.session_state.filter_phone:
+    contacts = [c for c in contacts if st.session_state.filter_phone.lower() in c["phone"].lower()]
+if st.session_state.filter_name:
+    contacts = [c for c in contacts if c.get("client_name") and st.session_state.filter_name.lower() in c["client_name"].lower()]
 
 if not contacts:
     st.info("🔍 No contacts found")
     st.stop()
 
-# Initialize session state
+# Initialize session state for selected phone
 if "selected_phone" not in st.session_state:
-    st.session_state.selected_phone = contacts[0]["phone"]
+    st.session_state.selected_phone = contacts[0]["phone"] if contacts else ""
 
 if "conv_offset" not in st.session_state:
     st.session_state.conv_offset = 0
@@ -960,7 +1231,6 @@ if "auto_refresh" not in st.session_state:
     st.session_state.auto_refresh = True
 
 CONV_LIMIT = 20  # recommended
-
 
 # Layout
 col1, col2 = st.columns([1, 2.5])
@@ -990,9 +1260,14 @@ with col1:
 
 with col2:
     phone = st.session_state.selected_phone
-    selected = next((c for c in contacts if c["phone"] == phone), None)
+    if not phone and contacts:
+        phone = contacts[0]["phone"]
+        st.session_state.selected_phone = phone
+    
+    selected = next((c for c in contacts if c["phone"] == phone), None) if phone else None
     
     if not selected:
+        st.info("📭 Select a contact to view messages")
         st.stop()
     
     client_name = selected["client_name"] or phone
@@ -1046,6 +1321,11 @@ with col2:
     
     # Fetch messages with pagination
     conv = fetch_conversation(phone, limit=CONV_LIMIT, offset=st.session_state.conv_offset)
+    
+    # Apply date and time filters to messages
+    date_filter = st.session_state.filter_date if st.session_state.filter_by_date else None
+    time_from = st.session_state.filter_time_from if st.session_state.filter_by_time else None
+    time_to = st.session_state.filter_time_to if st.session_state.filter_by_time else None
     conv = filter_messages(conv, date_filter, time_from, time_to)
     
     # Sort messages by timestamp (oldest first) so new messages appear at bottom
@@ -1202,4 +1482,3 @@ with col2:
                     st.error(f"Error: {resp.text}")
             
             st.markdown('</div>', unsafe_allow_html=True)  # Close update-section
-
