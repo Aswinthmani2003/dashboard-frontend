@@ -1226,7 +1226,7 @@ with col2:
         key="search_conv"
     )
     
-    # Fetch and filter the conversation messages
+    # Fetch messages with pagination
     conv = fetch_conversation(phone, limit=CONV_LIMIT, offset=st.session_state.conv_offset)
     
     # Apply date and time filters to messages
@@ -1235,15 +1235,14 @@ with col2:
     time_to = st.session_state.filter_time_to if st.session_state.filter_by_time else None
     conv = filter_messages(conv, date_filter, time_from, time_to)
     
-    # Sort messages by timestamp in ascending order (oldest first) for correct display order
-    conv.sort(key=lambda x: datetime.fromisoformat(x["timestamp"]))
+    # Sort messages by timestamp (oldest first) so new messages appear at bottom
+    conv.sort(key=lambda x: datetime.fromisoformat(x["timestamp"]), reverse=True)
     
     # Unread badge (based on follow_up_needed in current page)
     unread_count = sum(1 for m in conv if m.get("follow_up_needed"))
     if unread_count > 0:
         st.markdown(f"<p class='unread-badge'>🔴 {unread_count} unread messages</p>", unsafe_allow_html=True)
     
-    # Rendering messages (this will now render from top to bottom, as expected)
     if not conv:
         st.info("📭 No messages")
     else:
@@ -1257,17 +1256,16 @@ with col2:
             raw_text = msg["message"] or ""
             display_text = raw_text
             
-            # Highlight search matches (if applicable)
+            # Highlight search matches
             if search_query:
                 pattern = re.escape(search_query)
                 def repl(m):
                     return f"<span class='highlight'>{m.group(0)}</span>"
                 display_text = re.sub(pattern, repl, display_text, flags=re.IGNORECASE)
             
-            # Replace newlines with <br> to maintain formatting
+            # Replace newlines with <br>
             display_text = display_text.replace("\n", "<br>")
             
-            # Creating the message bubble (user/bot distinction)
             message_html = f"""
             <div class="message-row {direction}">
                 <div class="message-bubble {direction}">
@@ -1275,7 +1273,6 @@ with col2:
                     <div class="message-time">{ts.strftime("%H:%M")}</div>
             """
             
-            # Follow-up flag, notes, etc. (if applicable)
             if msg.get("follow_up_needed"):
                 message_html += '<div class="message-meta">🔴 Follow-up needed</div>'
             if msg.get("notes"):
