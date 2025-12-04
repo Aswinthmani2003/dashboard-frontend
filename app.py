@@ -1454,106 +1454,80 @@ if "auto_refresh" not in st.session_state:
 
 CONV_LIMIT = 50
 
-# Layout: Contacts | Chat
-col1, col2 = st.columns([1, 2.5])
+# Main layout - Full width chat area (no sidebar)
+phone = st.session_state.selected_phone
 
-with col1:
-    st.markdown('<div class="contacts-sidebar">', unsafe_allow_html=True)
-    st.markdown('<div class="contacts-header"><h3>Chats</h3></div>', unsafe_allow_html=True)
+# Contact selector dropdown at top
+if contacts:
+    contact_options = {c["phone"]: f"{c['client_name'] or 'Unknown'} ({c['phone']})" for c in contacts}
     
-    if not contacts:
-        st.markdown("""
-        <div class="empty-state">
-            <div class="empty-state-icon">💬</div>
-            <div class="empty-state-text">No contacts found</div>
-            <div class="empty-state-subtext">Try adjusting your filters</div>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        for c in contacts:
-            client_name = c["client_name"] or "Unknown"
-            phone = c["phone"]
-            is_selected = st.session_state.selected_phone == phone
-            initials = get_initials(client_name)
-            
-            # Get last message preview
-            last_msg = c.get("last_message", "")[:50] + "..." if len(c.get("last_message", "")) > 50 else c.get("last_message", "")
-            
-            # Format time
-            last_time = ""
-            if c.get("last_message_time"):
-                try:
-                    dt = datetime.fromisoformat(c["last_message_time"])
-                    if dt.date() == date.today():
-                        last_time = dt.strftime("%H:%M")
-                    else:
-                        last_time = dt.strftime("%d/%m/%y")
-                except:
-                    pass
-            
-            # Create button with custom styling
-            fu_indicator = "🔴 " if c.get("follow_up_open") else ""
-            button_label = f"{fu_indicator}{initials} {client_name}"
-            
-            if st.button(button_label, key=phone, use_container_width=True, 
-                        type="primary" if is_selected else "secondary"):
-                st.session_state.selected_phone = phone
-                st.session_state.conv_offset = 0
-                draft_key = f"new_msg_{phone}"
-                if draft_key in st.session_state:
-                    del st.session_state[draft_key]
-                st.rerun()
+    selected_display = st.selectbox(
+        "Select Contact",
+        options=list(contact_options.keys()),
+        format_func=lambda x: contact_options[x],
+        index=list(contact_options.keys()).index(phone) if phone in contact_options else 0,
+        key="contact_selector"
+    )
     
-    st.markdown('</div>', unsafe_allow_html=True)
+    if selected_display != phone:
+        st.session_state.selected_phone = selected_display
+        st.session_state.conv_offset = 0
+        draft_key = f"new_msg_{selected_display}"
+        if draft_key in st.session_state:
+            del st.session_state[draft_key]
+        st.rerun()
+    
+    phone = selected_display
 
-with col2:
-    phone = st.session_state.selected_phone
-    if not phone and contacts:
-        phone = contacts[0]["phone"]
-        st.session_state.selected_phone = phone
-    
-    selected = next((c for c in contacts if c["phone"] == phone), None) if phone else None
+if not phone and contacts:
+    phone = contacts[0]["phone"]
+    st.session_state.selected_phone = phone
+
+selected = next((c for c in contacts if c["phone"] == phone), None) if phone else None
     
     if not selected:
-        st.markdown("""
-        <div class="empty-state" style="height: calc(100vh - 120px);">
-            <div class="empty-state-icon">💭</div>
-            <div class="empty-state-text">Select a chat to start messaging</div>
-            <div class="empty-state-subtext">Choose a contact from the list</div>
-        </div>
-        """, unsafe_allow_html=True)
-        st.stop()
-    
-    client_name = selected["client_name"] or phone
-    initials = get_initials(client_name)
-    
-    # Chat container
-    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-    
-    # Chat header
-    col_h1, col_h2, col_h3 = st.columns([0.1, 5, 1])
-    
-    with col_h2:
-        st.markdown(f"""
-        <div class="chat-header">
-            <div class="chat-header-left">
-                <div class="chat-avatar">{initials}</div>
-                <div class="chat-header-info">
-                    <h3>{client_name}</h3>
-                    <p>{phone}</p>
-                </div>
-            </div>
-            <div class="chat-header-actions">
-                <button class="icon-btn">🔍</button>
+    st.markdown("""
+    <div class="empty-state" style="height: calc(100vh - 120px);">
+        <div class="empty-state-icon">💭</div>
+        <div class="empty-state-text">No contact selected</div>
+        <div class="empty-state-subtext">Choose a contact from the dropdown above</div>
+    </div>
+    """, unsafe_allow_html=True)
+    st.stop()
+
+client_name = selected["client_name"] or phone
+initials = get_initials(client_name)
+
+# Chat container
+st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+
+# Chat header
+col_h1, col_h2 = st.columns([6, 1])
+
+with col_h1:
+    st.markdown(f"""
+    <div class="chat-header">
+        <div class="chat-header-left">
+            <div class="chat-avatar">{initials}</div>
+            <div class="chat-header-info">
+                <h3>{client_name}</h3>
+                <p>{phone}</p>
             </div>
         </div>
-        """, unsafe_allow_html=True)
-    
-    with col_h3:
+        <div class="chat-header-actions">
+            <button class="icon-btn">🔍</button>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col_h2:
+    col_btn1, col_btn2 = st.columns(2)
+    with col_btn1:
         auto_refresh = st.checkbox("🔄", value=st.session_state.auto_refresh, key="auto_refresh_toggle", 
-                                   help="Auto-refresh messages")
+                                   help="Auto-refresh")
         st.session_state.auto_refresh = auto_refresh
-        
+    
+    with col_btn2:
         if st.button("🗑️", key="del_all", help="Delete conversation"):
             if st.session_state.get('confirm_del'):
                 if delete_conversation(phone):
@@ -1562,40 +1536,40 @@ with col2:
                     st.rerun()
             else:
                 st.session_state.confirm_del = True
-                st.warning("Click again to confirm")
+                st.warning("Click again")
     
-    # Auto-refresh script
-    if st.session_state.auto_refresh:
-        st.markdown("""
-        <script>
-            setTimeout(function() {
-                window.parent.location.reload();
-            }, 5000);
-        </script>
-        """, unsafe_allow_html=True)
+# Auto-refresh script
+if st.session_state.auto_refresh:
+    st.markdown("""
+    <script>
+        setTimeout(function() {
+            window.parent.location.reload();
+        }, 5000);
+    </script>
+    """, unsafe_allow_html=True)
+
+# Search bar
+search_query = st.text_input(
+    "Search",
+    placeholder="Search messages...",
+    key="search_conv",
+    label_visibility="collapsed"
+)
     
-    # Search bar
-    search_query = st.text_input(
-        "Search",
-        placeholder="Search messages...",
-        key="search_conv",
-        label_visibility="collapsed"
-    )
-    
-    # Fetch messages
-    conv = fetch_conversation(phone, limit=CONV_LIMIT, offset=st.session_state.conv_offset)
-    
-    # Apply filters
-    date_filter = st.session_state.filter_date if st.session_state.filter_by_date else None
-    time_from = st.session_state.filter_time_from if st.session_state.filter_by_time else None
-    time_to = st.session_state.filter_time_to if st.session_state.filter_by_time else None
-    conv = filter_messages(conv, date_filter, time_from, time_to)
-    
-    # Sort messages (oldest first)
-    conv.sort(key=lambda x: datetime.fromisoformat(x["timestamp"]), reverse=False)
-    
-    # Messages area
-    st.markdown('<div class="messages-area" id="chat-messages">', unsafe_allow_html=True)
+# Fetch messages
+conv = fetch_conversation(phone, limit=CONV_LIMIT, offset=st.session_state.conv_offset)
+
+# Apply filters
+date_filter = st.session_state.filter_date if st.session_state.filter_by_date else None
+time_from = st.session_state.filter_time_from if st.session_state.filter_by_time else None
+time_to = st.session_state.filter_time_to if st.session_state.filter_by_time else None
+conv = filter_messages(conv, date_filter, time_from, time_to)
+
+# Sort messages (oldest first)
+conv.sort(key=lambda x: datetime.fromisoformat(x["timestamp"]), reverse=False)
+
+# Messages area
+st.markdown('<div class="messages-area" id="chat-messages">', unsafe_allow_html=True)
     
     if not conv:
         st.markdown("""
@@ -1671,120 +1645,120 @@ with col2:
     
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # Auto-scroll to bottom
-    st.markdown("""
-    <script>
-        setTimeout(function() {
-            var chatArea = document.getElementById('chat-messages');
-            if (chatArea) {
-                chatArea.scrollTop = chatArea.scrollHeight;
-            }
-        }, 100);
-    </script>
-    """, unsafe_allow_html=True)
+# Auto-scroll to bottom
+st.markdown("""
+<script>
+    setTimeout(function() {
+        var chatArea = document.getElementById('chat-messages');
+        if (chatArea) {
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+    }, 100);
+</script>
+""", unsafe_allow_html=True)
+
+# Pagination
+st.markdown('<div class="pagination-section">', unsafe_allow_html=True)
+col_p1, col_p2, col_p3 = st.columns([1, 2, 1])
+
+with col_p1:
+    prev_disabled = st.session_state.conv_offset == 0
+    if st.button("⬅️ Previous", disabled=prev_disabled):
+        st.session_state.conv_offset = max(0, st.session_state.conv_offset - CONV_LIMIT)
+        st.rerun()
+
+with col_p2:
+    start_idx = st.session_state.conv_offset + 1 if conv else 0
+    end_idx = st.session_state.conv_offset + len(conv)
+    st.markdown(f'<p class="pagination-info">Messages {start_idx}–{end_idx}</p>', unsafe_allow_html=True)
+
+with col_p3:
+    if st.button("Next ➡️"):
+        st.session_state.conv_offset += CONV_LIMIT
+        st.rerun()
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Message input area
+st.markdown('<div class="message-input-area">', unsafe_allow_html=True)
+
+draft_key = f"new_msg_{phone}"
+type_key = f"msg_type_{phone}"
+tmpl_key = f"tmpl_{phone}"
+
+col_input1, col_input2 = st.columns([3, 1])
+
+with col_input1:
+    new_msg = st.text_area(
+        "Message",
+        value=st.session_state.get(draft_key, ""),
+        placeholder="Type a message...",
+        key=draft_key,
+        height=60,
+        label_visibility="collapsed"
+    )
+
+with col_input2:
+    msg_type_label = st.radio(
+        "Type",
+        ["Text", "Template"],
+        key=type_key,
+        horizontal=False
+    )
     
-    # Pagination
-    st.markdown('<div class="pagination-section">', unsafe_allow_html=True)
-    col_p1, col_p2, col_p3 = st.columns([1, 2, 1])
-    
-    with col_p1:
-        prev_disabled = st.session_state.conv_offset == 0
-        if st.button("⬅️ Previous", disabled=prev_disabled):
-            st.session_state.conv_offset = max(0, st.session_state.conv_offset - CONV_LIMIT)
-            st.rerun()
-    
-    with col_p2:
-        start_idx = st.session_state.conv_offset + 1 if conv else 0
-        end_idx = st.session_state.conv_offset + len(conv)
-        st.markdown(f'<p class="pagination-info">Messages {start_idx}–{end_idx}</p>', unsafe_allow_html=True)
-    
-    with col_p3:
-        if st.button("Next ➡️"):
-            st.session_state.conv_offset += CONV_LIMIT
-            st.rerun()
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Message input area
-    st.markdown('<div class="message-input-area">', unsafe_allow_html=True)
-    
-    draft_key = f"new_msg_{phone}"
-    type_key = f"msg_type_{phone}"
-    tmpl_key = f"tmpl_{phone}"
-    
-    col_input1, col_input2 = st.columns([3, 1])
-    
-    with col_input1:
-        new_msg = st.text_area(
-            "Message",
-            value=st.session_state.get(draft_key, ""),
-            placeholder="Type a message...",
-            key=draft_key,
-            height=60,
+    if msg_type_label == "Template":
+        template_name = st.text_input(
+            "Template",
+            placeholder="Template name",
+            key=tmpl_key,
             label_visibility="collapsed"
         )
+    else:
+        template_name = None
+
+if st.button("📤 Send", use_container_width=True, key=f"send_{phone}"):
+    msg_clean = (new_msg or "").strip()
+    if not msg_clean:
+        st.warning("Please type a message")
+    else:
+        msg_type = "template" if msg_type_label == "Template" else "text"
+        ok = send_whatsapp_message(phone, msg_clean, msg_type, template_name)
+        if ok:
+            st.success("✅ Message sent!")
+            if draft_key in st.session_state:
+                del st.session_state[draft_key]
+            import time
+            time.sleep(0.5)
+            st.rerun()
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Update section
+update_msg = conv[0] if conv else None
+
+if update_msg:
+    st.markdown('<div class="update-section">', unsafe_allow_html=True)
+    st.markdown("### 📝 Update Status")
     
-    with col_input2:
-        msg_type_label = st.radio(
-            "Type",
-            ["Text", "Template"],
-            key=type_key,
-            horizontal=False
+    col_u1, col_u2 = st.columns(2)
+    with col_u1:
+        fu_flag = st.checkbox("🔴 Follow-up needed", value=update_msg.get("follow_up_needed", False))
+    with col_u2:
+        handler = st.text_input("👤 Handled by", value=update_msg.get("handled_by") or "")
+    
+    notes = st.text_area("📝 Notes", value=update_msg.get("notes") or "", height=60)
+    
+    if st.button("💾 Save", use_container_width=True):
+        resp = requests.patch(
+            f"{API_BASE}/message/{update_msg['id']}",
+            json={"follow_up_needed": fu_flag, "notes": notes, "handled_by": handler}
         )
-        
-        if msg_type_label == "Template":
-            template_name = st.text_input(
-                "Template",
-                placeholder="Template name",
-                key=tmpl_key,
-                label_visibility="collapsed"
-            )
+        if resp.status_code == 200:
+            st.success("✅ Updated!")
+            st.rerun()
         else:
-            template_name = None
-    
-    if st.button("📤 Send", use_container_width=True, key=f"send_{phone}"):
-        msg_clean = (new_msg or "").strip()
-        if not msg_clean:
-            st.warning("Please type a message")
-        else:
-            msg_type = "template" if msg_type_label == "Template" else "text"
-            ok = send_whatsapp_message(phone, msg_clean, msg_type, template_name)
-            if ok:
-                st.success("✅ Message sent!")
-                if draft_key in st.session_state:
-                    del st.session_state[draft_key]
-                import time
-                time.sleep(0.5)
-                st.rerun()
+            st.error(f"Error: {resp.text}")
     
     st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Update section
-    update_msg = conv[0] if conv else None
-    
-    if update_msg:
-        st.markdown('<div class="update-section">', unsafe_allow_html=True)
-        st.markdown("### 📝 Update Status")
-        
-        col_u1, col_u2 = st.columns(2)
-        with col_u1:
-            fu_flag = st.checkbox("🔴 Follow-up needed", value=update_msg.get("follow_up_needed", False))
-        with col_u2:
-            handler = st.text_input("👤 Handled by", value=update_msg.get("handled_by") or "")
-        
-        notes = st.text_area("📝 Notes", value=update_msg.get("notes") or "", height=60)
-        
-        if st.button("💾 Save", use_container_width=True):
-            resp = requests.patch(
-                f"{API_BASE}/message/{update_msg['id']}",
-                json={"follow_up_needed": fu_flag, "notes": notes, "handled_by": handler}
-            )
-            if resp.status_code == 200:
-                st.success("✅ Updated!")
-                st.rerun()
-            else:
-                st.error(f"Error: {resp.text}")
-        
-        st.markdown('</div>', unsafe_allow_html=True)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
+
+st.markdown('</div>', unsafe_allow_html=True)
