@@ -1491,24 +1491,12 @@ with col1:
                 except:
                     pass
             
-            selected_class = "selected" if is_selected else ""
-            fu_badge = f'<div class="follow-up-badge">FU</div>' if c.get("follow_up_open") else ""
+            # Create button with custom styling
+            fu_indicator = "🔴 " if c.get("follow_up_open") else ""
+            button_label = f"{fu_indicator}{initials} {client_name}"
             
-            contact_html = f"""
-            <div class="contact-card {selected_class}" onclick="return true;">
-                <div class="contact-avatar">{initials}</div>
-                <div class="contact-info">
-                    <div class="contact-name">{client_name}</div>
-                    <div class="contact-preview">{last_msg or "No messages"}</div>
-                </div>
-                <div class="contact-time">{last_time}</div>
-                {fu_badge}
-            </div>
-            """
-            
-            if st.button(f"{client_name}", key=phone, use_container_width=True, 
-                        type="primary" if is_selected else "secondary", 
-                        label_visibility="collapsed"):
+            if st.button(button_label, key=phone, use_container_width=True, 
+                        type="primary" if is_selected else "secondary"):
                 st.session_state.selected_phone = phone
                 st.session_state.conv_offset = 0
                 draft_key = f"new_msg_{phone}"
