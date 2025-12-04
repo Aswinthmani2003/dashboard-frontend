@@ -1911,13 +1911,6 @@ with col2:
                 <div class="message-row {direction}">
                     <div class="message-bubble {direction}">
                         <div class="message-text">{display_text}</div>
-                        <div class="message-time">
-                            {msg_time}
-                            <span class="message-meta">
-                                {'<span class="message-status delivered">✓✓</span>' if direction == 'bot' else ''}
-                                {'🔴' if msg.get('follow_up_needed') else ''}
-                            </span>
-                        </div>
                 """
                 
                 if msg.get("notes"):
@@ -2033,4 +2026,5 @@ with col2:
                 st.error(f"Error: {str(e)}")
         
         st.markdown('</div>', unsafe_allow_html=True)
+
 
