@@ -1276,17 +1276,18 @@ else:
         direction = "incoming" if msg["direction"] in ["user", "incoming"] else "outgoing"
         
         raw_text = msg["message"] or ""
-        display_text = raw_text
         
-        # Highlight search matches
+        # Escape HTML first to prevent any HTML tags from rendering
+        display_text = html.escape(raw_text)
+        
+        # Highlight search matches (after escaping)
         if search_query:
             pattern = re.escape(search_query)
             def repl(m):
                 return f"<span class='highlight'>{m.group(0)}</span>"
             display_text = re.sub(pattern, repl, display_text, flags=re.IGNORECASE)
         
-        # Escape HTML in the message text and replace newlines
-        display_text = html.escape(display_text)
+        # Replace newlines with <br> (after escaping)
         display_text = display_text.replace("\n", "<br>")
         
         # Message status (for outgoing)
