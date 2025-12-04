@@ -4,10 +4,9 @@ from datetime import datetime, date, time
 import base64
 from pathlib import Path
 import re
-import html
 
 API_BASE = "https://dashboard-backend-qqmi.onrender.com"
-MAKE_WEBHOOK_URL = st.secrets.get("make_webhook_url", "")
+MAKE_WEBHOOK_URL = st.secrets.get("make_webhook_url", "")  # set this in secrets.toml
 
 
 def check_password():
@@ -17,14 +16,18 @@ def check_password():
         """Checks whether the password entered by the user is correct."""
         if st.session_state["password"] == st.secrets["dashboard_password"]:
             st.session_state["password_correct"] = True
+            # Don't store the password
             del st.session_state["password"]
         else:
             st.session_state["password_correct"] = False
 
     if "password_correct" not in st.session_state:
+        # First run, show input
         st.text_input("Password", type="password", on_change=password_entered, key="password")
         st.stop()
+
     elif not st.session_state["password_correct"]:
+        # Wrong password, show input + error
         st.text_input("Password", type="password", on_change=password_entered, key="password")
         st.error("❌ Wrong password")
         st.stop()
@@ -40,7 +43,7 @@ check_password()
 
 # Initialize theme in session state
 if "theme" not in st.session_state:
-    st.session_state.theme = "dark"
+    st.session_state.theme = "dark"  # default to dark mode
 
 # Initialize filter states
 if "filter_phone" not in st.session_state:
@@ -62,7 +65,7 @@ if "filter_only_fu" not in st.session_state:
 if "show_filters" not in st.session_state:
     st.session_state.show_filters = False
 
-
+# Function to load and encode logo
 def get_base64_logo():
     """Load logo.png and convert to base64 for embedding"""
     logo_path = Path("Logo.png")
@@ -72,13 +75,15 @@ def get_base64_logo():
         return base64.b64encode(data).decode()
     return None
 
-
+# Function to get CSS based on theme
 def get_css(theme):
     if theme == "dark":
         return """
         <style>
+            /* Import WhatsApp font */
             @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;500;600&display=swap');
             
+            /* Global dark theme */
             * {
                 font-family: 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif;
             }
@@ -88,12 +93,14 @@ def get_css(theme):
                 padding: 0 !important;
             }
             
+            /* Remove default padding */
             .block-container {
                 padding-top: 0 !important;
                 padding-bottom: 0 !important;
                 max-width: 100% !important;
             }
             
+            /* Header */
             .main-header {
                 background: #202c33;
                 padding: 10px 16px;
@@ -123,6 +130,15 @@ def get_css(theme):
                 object-fit: cover;
             }
             
+            /* Top controls row */
+            .top-controls {
+                background: #0b141a;
+                padding: 8px 12px;
+                display: flex;
+                gap: 8px;
+            }
+            
+            /* Filter section */
             .filter-container {
                 background-color: #111b21;
                 border-radius: 0;
@@ -156,6 +172,126 @@ def get_css(theme):
                 background: #0b141a;
             }
             
+            /* Contact sidebar */
+            .contacts-sidebar {
+                background: #111b21;
+                height: calc(100vh - 120px);
+                overflow-y: auto;
+                border-right: 1px solid #2a3942;
+            }
+            
+            .contacts-header {
+                background: #202c33;
+                padding: 10px 16px;
+                border-bottom: 1px solid #2a3942;
+                position: sticky;
+                top: 0;
+                z-index: 10;
+            }
+            
+            .contacts-header h3 {
+                color: #e9edef;
+                margin: 0;
+                font-size: 19px;
+                font-weight: 600;
+            }
+            
+            /* Contact card - WhatsApp style */
+            .contact-card {
+                background-color: transparent;
+                padding: 12px 16px;
+                cursor: pointer;
+                border-bottom: 1px solid #1f2c34;
+                transition: background-color 0.15s ease;
+                position: relative;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+            
+            .contact-card:hover {
+                background-color: #202c33;
+            }
+            
+            .contact-card.selected {
+                background-color: #2a3942;
+            }
+            
+            .contact-avatar {
+                width: 49px;
+                height: 49px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #00a884 0%, #00796b 100%);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #fff;
+                font-size: 20px;
+                font-weight: 500;
+                flex-shrink: 0;
+            }
+            
+            .contact-info {
+                flex: 1;
+                min-width: 0;
+                padding-right: 30px;
+            }
+            
+            .contact-name {
+                color: #e9edef;
+                font-size: 16px;
+                font-weight: 400;
+                margin-bottom: 3px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            
+            .contact-preview {
+                color: #8696a0;
+                font-size: 13px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                display: flex;
+                align-items: center;
+                gap: 4px;
+            }
+            
+            .contact-time {
+                position: absolute;
+                top: 14px;
+                right: 16px;
+                color: #8696a0;
+                font-size: 12px;
+            }
+            
+            .follow-up-badge {
+                position: absolute;
+                top: 38px;
+                right: 16px;
+                background: #25d366;
+                color: #111b21;
+                font-size: 11px;
+                font-weight: 600;
+                padding: 2px 6px;
+                border-radius: 10px;
+                min-width: 20px;
+                text-align: center;
+            }
+            
+            .unread-count {
+                background: #25d366;
+                color: #111b21;
+                font-size: 12px;
+                font-weight: 600;
+                padding: 2px 6px;
+                border-radius: 10px;
+                min-width: 20px;
+                text-align: center;
+            }
+            
+            /* Chat area */
             .chat-container {
                 display: flex;
                 flex-direction: column;
@@ -163,6 +299,7 @@ def get_css(theme):
                 background: #0b141a;
             }
             
+            /* Chat header */
             .chat-header {
                 background: #202c33;
                 padding: 10px 16px;
@@ -230,6 +367,14 @@ def get_css(theme):
                 color: #e9edef;
             }
             
+            /* Search bar */
+            .search-bar {
+                background: #202c33;
+                padding: 8px 16px;
+                border-bottom: 1px solid #2a3942;
+            }
+            
+            /* Messages area */
             .messages-area {
                 flex: 1;
                 overflow-y: auto;
@@ -245,6 +390,7 @@ def get_css(theme):
                 position: relative;
             }
             
+            /* Message container */
             .message-row {
                 display: flex;
                 margin-bottom: 8px;
@@ -265,6 +411,7 @@ def get_css(theme):
                 justify-content: flex-end;
             }
             
+            /* Message bubble */
             .message-bubble {
                 max-width: 65%;
                 padding: 6px 7px 8px 9px;
@@ -321,6 +468,7 @@ def get_css(theme):
                 gap: 4px;
             }
             
+            /* Message input area */
             .message-input-area {
                 background: #202c33;
                 padding: 8px 16px;
@@ -328,6 +476,16 @@ def get_css(theme):
                 flex-shrink: 0;
             }
             
+            .input-container {
+                display: flex;
+                align-items: flex-end;
+                gap: 8px;
+                background: #2a3942;
+                border-radius: 8px;
+                padding: 8px 12px;
+            }
+            
+            /* Date divider */
             .date-divider {
                 text-align: center;
                 margin: 20px 0;
@@ -343,6 +501,7 @@ def get_css(theme):
                 box-shadow: 0 1px 2px rgba(0,0,0,0.1);
             }
             
+            /* Pagination */
             .pagination-section {
                 background: #202c33;
                 padding: 12px 16px;
@@ -359,6 +518,7 @@ def get_css(theme):
                 margin: 0;
             }
             
+            /* Update section */
             .update-section {
                 background: #111b21;
                 border-top: 1px solid #2a3942;
@@ -373,6 +533,7 @@ def get_css(theme):
                 margin-bottom: 12px !important;
             }
             
+            /* Buttons */
             .stButton > button {
                 background-color: #00a884 !important;
                 color: white !important;
@@ -387,6 +548,7 @@ def get_css(theme):
                 background-color: #06cf9c !important;
             }
             
+            /* Input fields */
             .stTextInput input, .stTextArea textarea {
                 background-color: #2a3942 !important;
                 color: #e9edef !important;
@@ -400,21 +562,25 @@ def get_css(theme):
                 box-shadow: 0 0 0 1px #00a884 !important;
             }
             
+            /* Checkbox */
             [data-testid="stCheckbox"] label {
                 color: #e9edef !important;
                 font-size: 14px !important;
             }
             
+            /* Selectbox */
             .stSelectbox label {
                 color: #e9edef !important;
                 font-size: 14px !important;
             }
             
+            /* Radio buttons */
             .stRadio label {
                 color: #e9edef !important;
                 font-size: 14px !important;
             }
             
+            /* Date and time inputs */
             .stDateInput input, .stTimeInput input {
                 background-color: #2a3942 !important;
                 color: #e9edef !important;
@@ -422,6 +588,7 @@ def get_css(theme):
                 border-radius: 8px !important;
             }
             
+            /* Scrollbar */
             ::-webkit-scrollbar {
                 width: 6px;
                 height: 6px;
@@ -440,16 +607,19 @@ def get_css(theme):
                 background: #4a5458;
             }
             
+            /* Hide streamlit elements */
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
             header {visibility: hidden;}
             
+            /* Highlight for search */
             .highlight {
                 background-color: #5c5c5c;
                 padding: 0 2px;
                 border-radius: 2px;
             }
             
+            /* Empty state */
             .empty-state {
                 display: flex;
                 flex-direction: column;
@@ -477,11 +647,13 @@ def get_css(theme):
             }
         </style>
         """
-    else:
+    else:  # light theme
         return """
         <style>
+            /* Import WhatsApp font */
             @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;500;600&display=swap');
             
+            /* Global light theme */
             * {
                 font-family: 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif;
             }
@@ -491,12 +663,14 @@ def get_css(theme):
                 padding: 0 !important;
             }
             
+            /* Remove default padding */
             .block-container {
                 padding-top: 0 !important;
                 padding-bottom: 0 !important;
                 max-width: 100% !important;
             }
             
+            /* Header */
             .main-header {
                 background: #ededed;
                 padding: 10px 16px;
@@ -526,6 +700,15 @@ def get_css(theme):
                 object-fit: cover;
             }
             
+            /* Top controls row */
+            .top-controls {
+                background: #f0f2f5;
+                padding: 8px 12px;
+                display: flex;
+                gap: 8px;
+            }
+            
+            /* Filter section */
             .filter-container {
                 background-color: #fff;
                 border-radius: 0;
@@ -559,6 +742,126 @@ def get_css(theme):
                 background: #fff;
             }
             
+            /* Contact sidebar */
+            .contacts-sidebar {
+                background: #fff;
+                height: calc(100vh - 120px);
+                overflow-y: auto;
+                border-right: 1px solid #d1d7db;
+            }
+            
+            .contacts-header {
+                background: #ededed;
+                padding: 10px 16px;
+                border-bottom: 1px solid #d1d7db;
+                position: sticky;
+                top: 0;
+                z-index: 10;
+            }
+            
+            .contacts-header h3 {
+                color: #111b21;
+                margin: 0;
+                font-size: 19px;
+                font-weight: 600;
+            }
+            
+            /* Contact card */
+            .contact-card {
+                background-color: transparent;
+                padding: 12px 16px;
+                cursor: pointer;
+                border-bottom: 1px solid #e9edef;
+                transition: background-color 0.15s ease;
+                position: relative;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+            
+            .contact-card:hover {
+                background-color: #f5f6f6;
+            }
+            
+            .contact-card.selected {
+                background-color: #e9edef;
+            }
+            
+            .contact-avatar {
+                width: 49px;
+                height: 49px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #fff;
+                font-size: 20px;
+                font-weight: 500;
+                flex-shrink: 0;
+            }
+            
+            .contact-info {
+                flex: 1;
+                min-width: 0;
+                padding-right: 30px;
+            }
+            
+            .contact-name {
+                color: #111b21;
+                font-size: 16px;
+                font-weight: 400;
+                margin-bottom: 3px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            
+            .contact-preview {
+                color: #667781;
+                font-size: 13px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                display: flex;
+                align-items: center;
+                gap: 4px;
+            }
+            
+            .contact-time {
+                position: absolute;
+                top: 14px;
+                right: 16px;
+                color: #667781;
+                font-size: 12px;
+            }
+            
+            .follow-up-badge {
+                position: absolute;
+                top: 38px;
+                right: 16px;
+                background: #25d366;
+                color: #fff;
+                font-size: 11px;
+                font-weight: 600;
+                padding: 2px 6px;
+                border-radius: 10px;
+                min-width: 20px;
+                text-align: center;
+            }
+            
+            .unread-count {
+                background: #25d366;
+                color: #fff;
+                font-size: 12px;
+                font-weight: 600;
+                padding: 2px 6px;
+                border-radius: 10px;
+                min-width: 20px;
+                text-align: center;
+            }
+            
+            /* Chat area */
             .chat-container {
                 display: flex;
                 flex-direction: column;
@@ -566,6 +869,7 @@ def get_css(theme):
                 background: #efeae2;
             }
             
+            /* Chat header */
             .chat-header {
                 background: #ededed;
                 padding: 10px 16px;
@@ -633,6 +937,14 @@ def get_css(theme):
                 color: #111b21;
             }
             
+            /* Search bar */
+            .search-bar {
+                background: #ededed;
+                padding: 8px 16px;
+                border-bottom: 1px solid #d1d7db;
+            }
+            
+            /* Messages area */
             .messages-area {
                 flex: 1;
                 overflow-y: auto;
@@ -642,6 +954,7 @@ def get_css(theme):
                 position: relative;
             }
             
+            /* Message container */
             .message-row {
                 display: flex;
                 margin-bottom: 8px;
@@ -662,6 +975,7 @@ def get_css(theme):
                 justify-content: flex-end;
             }
             
+            /* Message bubble */
             .message-bubble {
                 max-width: 65%;
                 padding: 6px 7px 8px 9px;
@@ -718,6 +1032,7 @@ def get_css(theme):
                 gap: 4px;
             }
             
+            /* Message input area */
             .message-input-area {
                 background: #ededed;
                 padding: 8px 16px;
@@ -725,6 +1040,16 @@ def get_css(theme):
                 flex-shrink: 0;
             }
             
+            .input-container {
+                display: flex;
+                align-items: flex-end;
+                gap: 8px;
+                background: #ffffff;
+                border-radius: 8px;
+                padding: 8px 12px;
+            }
+            
+            /* Date divider */
             .date-divider {
                 text-align: center;
                 margin: 20px 0;
@@ -740,6 +1065,7 @@ def get_css(theme):
                 box-shadow: 0 1px 2px rgba(0,0,0,0.1);
             }
             
+            /* Pagination */
             .pagination-section {
                 background: #ededed;
                 padding: 12px 16px;
@@ -756,6 +1082,7 @@ def get_css(theme):
                 margin: 0;
             }
             
+            /* Update section */
             .update-section {
                 background: #fff;
                 border-top: 1px solid #d1d7db;
@@ -770,6 +1097,7 @@ def get_css(theme):
                 margin-bottom: 12px !important;
             }
             
+            /* Buttons */
             .stButton > button {
                 background-color: #25d366 !important;
                 color: white !important;
@@ -784,6 +1112,7 @@ def get_css(theme):
                 background-color: #20bd5a !important;
             }
             
+            /* Input fields */
             .stTextInput input, .stTextArea textarea {
                 background-color: #ffffff !important;
                 color: #111b21 !important;
@@ -797,21 +1126,25 @@ def get_css(theme):
                 box-shadow: 0 0 0 1px #25d366 !important;
             }
             
+            /* Checkbox */
             [data-testid="stCheckbox"] label {
                 color: #111b21 !important;
                 font-size: 14px !important;
             }
             
+            /* Selectbox */
             .stSelectbox label {
                 color: #111b21 !important;
                 font-size: 14px !important;
             }
             
+            /* Radio buttons */
             .stRadio label {
                 color: #111b21 !important;
                 font-size: 14px !important;
             }
             
+            /* Date and time inputs */
             .stDateInput input, .stTimeInput input {
                 background-color: #ffffff !important;
                 color: #111b21 !important;
@@ -819,6 +1152,7 @@ def get_css(theme):
                 border-radius: 8px !important;
             }
             
+            /* Scrollbar */
             ::-webkit-scrollbar {
                 width: 6px;
                 height: 6px;
@@ -837,16 +1171,19 @@ def get_css(theme):
                 background: #a8aeb3;
             }
             
+            /* Hide streamlit elements */
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
             header {visibility: hidden;}
             
+            /* Highlight for search */
             .highlight {
                 background-color: #ffd700;
                 padding: 0 2px;
                 border-radius: 2px;
             }
             
+            /* Empty state */
             .empty-state {
                 display: flex;
                 flex-direction: column;
@@ -875,8 +1212,7 @@ def get_css(theme):
         </style>
         """
 
-
-# Apply CSS
+# Apply CSS based on current theme
 st.markdown(get_css(st.session_state.theme), unsafe_allow_html=True)
 
 # Header with logo
@@ -985,7 +1321,6 @@ if st.session_state.show_filters:
     st.markdown('</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-
 # Helper functions
 def fetch_contacts(only_follow_up: bool):
     try:
@@ -1013,6 +1348,14 @@ def fetch_conversation(phone: str, limit: int = 50, offset: int = 0):
 def delete_conversation(phone: str):
     try:
         r = requests.delete(f"{API_BASE}/conversation/{phone}")
+        return r.status_code == 200
+    except:
+        return False
+
+
+def delete_message(msg_id: int):
+    try:
+        r = requests.delete(f"{API_BASE}/message/{msg_id}")
         return r.status_code == 200
     except:
         return False
@@ -1111,79 +1454,106 @@ if "auto_refresh" not in st.session_state:
 
 CONV_LIMIT = 50
 
-# Contact selector dropdown
-phone = st.session_state.selected_phone
+# Layout: Contacts | Chat
+col1, col2 = st.columns([1, 2.5])
 
-if contacts:
-    contact_options = {c["phone"]: f"{c['client_name'] or 'Unknown'} ({c['phone']})" for c in contacts}
+with col1:
+    st.markdown('<div class="contacts-sidebar">', unsafe_allow_html=True)
+    st.markdown('<div class="contacts-header"><h3>Chats</h3></div>', unsafe_allow_html=True)
     
-    selected_display = st.selectbox(
-        "Select Contact",
-        options=list(contact_options.keys()),
-        format_func=lambda x: contact_options[x],
-        index=list(contact_options.keys()).index(phone) if phone in contact_options else 0,
-        key="contact_selector"
-    )
+    if not contacts:
+        st.markdown("""
+        <div class="empty-state">
+            <div class="empty-state-icon">💬</div>
+            <div class="empty-state-text">No contacts found</div>
+            <div class="empty-state-subtext">Try adjusting your filters</div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        for c in contacts:
+            client_name = c["client_name"] or "Unknown"
+            phone = c["phone"]
+            is_selected = st.session_state.selected_phone == phone
+            initials = get_initials(client_name)
+            
+            # Get last message preview
+            last_msg = c.get("last_message", "")[:50] + "..." if len(c.get("last_message", "")) > 50 else c.get("last_message", "")
+            
+            # Format time
+            last_time = ""
+            if c.get("last_message_time"):
+                try:
+                    dt = datetime.fromisoformat(c["last_message_time"])
+                    if dt.date() == date.today():
+                        last_time = dt.strftime("%H:%M")
+                    else:
+                        last_time = dt.strftime("%d/%m/%y")
+                except:
+                    pass
+            
+            # Create button with custom styling
+            fu_indicator = "🔴 " if c.get("follow_up_open") else ""
+            button_label = f"{fu_indicator}{initials} {client_name}"
+            
+            if st.button(button_label, key=phone, use_container_width=True, 
+                        type="primary" if is_selected else "secondary"):
+                st.session_state.selected_phone = phone
+                st.session_state.conv_offset = 0
+                draft_key = f"new_msg_{phone}"
+                if draft_key in st.session_state:
+                    del st.session_state[draft_key]
+                st.rerun()
     
-    if selected_display != phone:
-        st.session_state.selected_phone = selected_display
-        st.session_state.conv_offset = 0
-        draft_key = f"new_msg_{selected_display}"
-        if draft_key in st.session_state:
-            del st.session_state[draft_key]
-        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+with col2:
+    phone = st.session_state.selected_phone
+    if not phone and contacts:
+        phone = contacts[0]["phone"]
+        st.session_state.selected_phone = phone
     
-    phone = selected_display
-
-if not phone and contacts:
-    phone = contacts[0]["phone"]
-    st.session_state.selected_phone = phone
-
-selected = next((c for c in contacts if c["phone"] == phone), None) if phone else None
-
-if not selected:
-    st.markdown("""
-    <div class="empty-state" style="height: calc(100vh - 120px);">
-        <div class="empty-state-icon">💭</div>
-        <div class="empty-state-text">No contact selected</div>
-        <div class="empty-state-subtext">Choose a contact from the dropdown above</div>
-    </div>
-    """, unsafe_allow_html=True)
-    st.stop()
-
-client_name = selected["client_name"] or phone
-initials = get_initials(client_name)
-
-# Chat container
-st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-
-# Chat header
-col_h1, col_h2 = st.columns([6, 1])
-
-with col_h1:
-    st.markdown(f"""
-    <div class="chat-header">
-        <div class="chat-header-left">
-            <div class="chat-avatar">{initials}</div>
-            <div class="chat-header-info">
-                <h3>{client_name}</h3>
-                <p>{phone}</p>
+    selected = next((c for c in contacts if c["phone"] == phone), None) if phone else None
+    
+    if not selected:
+        st.markdown("""
+        <div class="empty-state" style="height: calc(100vh - 120px);">
+            <div class="empty-state-icon">💭</div>
+            <div class="empty-state-text">Select a chat to start messaging</div>
+            <div class="empty-state-subtext">Choose a contact from the list</div>
+        </div>
+        """, unsafe_allow_html=True)
+        st.stop()
+    
+    client_name = selected["client_name"] or phone
+    initials = get_initials(client_name)
+    
+    # Chat container
+    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+    
+    # Chat header
+    col_h1, col_h2, col_h3 = st.columns([0.1, 5, 1])
+    
+    with col_h2:
+        st.markdown(f"""
+        <div class="chat-header">
+            <div class="chat-header-left">
+                <div class="chat-avatar">{initials}</div>
+                <div class="chat-header-info">
+                    <h3>{client_name}</h3>
+                    <p>{phone}</p>
+                </div>
+            </div>
+            <div class="chat-header-actions">
+                <button class="icon-btn">🔍</button>
             </div>
         </div>
-        <div class="chat-header-actions">
-            <button class="icon-btn">🔍</button>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-with col_h2:
-    col_btn1, col_btn2 = st.columns(2)
-    with col_btn1:
-        auto_refresh = st.checkbox("🔄", value=st.session_state.auto_refresh, key="auto_refresh_toggle", 
-                                   help="Auto-refresh")
-        st.session_state.auto_refresh = auto_refresh
+        """, unsafe_allow_html=True)
     
-    with col_btn2:
+    with col_h3:
+        auto_refresh = st.checkbox("🔄", value=st.session_state.auto_refresh, key="auto_refresh_toggle", 
+                                   help="Auto-refresh messages")
+        st.session_state.auto_refresh = auto_refresh
+        
         if st.button("🗑️", key="del_all", help="Delete conversation"):
             if st.session_state.get('confirm_del'):
                 if delete_conversation(phone):
@@ -1192,231 +1562,229 @@ with col_h2:
                     st.rerun()
             else:
                 st.session_state.confirm_del = True
-                st.warning("Click again")
-
-# Auto-refresh script
-if st.session_state.auto_refresh:
+                st.warning("Click again to confirm")
+    
+    # Auto-refresh script
+    if st.session_state.auto_refresh:
+        st.markdown("""
+        <script>
+            setTimeout(function() {
+                window.parent.location.reload();
+            }, 5000);
+        </script>
+        """, unsafe_allow_html=True)
+    
+    # Search bar
+    search_query = st.text_input(
+        "Search",
+        placeholder="Search messages...",
+        key="search_conv",
+        label_visibility="collapsed"
+    )
+    
+    # Fetch messages
+    conv = fetch_conversation(phone, limit=CONV_LIMIT, offset=st.session_state.conv_offset)
+    
+    # Apply filters
+    date_filter = st.session_state.filter_date if st.session_state.filter_by_date else None
+    time_from = st.session_state.filter_time_from if st.session_state.filter_by_time else None
+    time_to = st.session_state.filter_time_to if st.session_state.filter_by_time else None
+    conv = filter_messages(conv, date_filter, time_from, time_to)
+    
+    # Sort messages (oldest first)
+    conv.sort(key=lambda x: datetime.fromisoformat(x["timestamp"]), reverse=False)
+    
+    # Messages area
+    st.markdown('<div class="messages-area" id="chat-messages">', unsafe_allow_html=True)
+    
+    if not conv:
+        st.markdown("""
+        <div class="empty-state">
+            <div class="empty-state-icon">📭</div>
+            <div class="empty-state-text">No messages yet</div>
+            <div class="empty-state-subtext">Start the conversation</div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        current_date = None
+        for msg in conv:
+            ts = datetime.fromisoformat(msg["timestamp"])
+            msg_date = ts.date()
+            
+            # Date divider
+            if current_date != msg_date:
+                current_date = msg_date
+                if msg_date == date.today():
+                    date_label = "TODAY"
+                elif msg_date == date.today().replace(day=date.today().day - 1):
+                    date_label = "YESTERDAY"
+                else:
+                    date_label = msg_date.strftime("%d/%m/%Y")
+                
+                st.markdown(f"""
+                <div class="date-divider">
+                    <span>{date_label}</span>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            # Message direction
+            direction = "incoming" if msg["direction"] in ["user", "incoming"] else "outgoing"
+            
+            raw_text = msg["message"] or ""
+            display_text = raw_text
+            
+            # Highlight search matches
+            if search_query:
+                pattern = re.escape(search_query)
+                def repl(m):
+                    return f"<span class='highlight'>{m.group(0)}</span>"
+                display_text = re.sub(pattern, repl, display_text, flags=re.IGNORECASE)
+            
+            # Replace newlines
+            display_text = display_text.replace("\n", "<br>")
+            
+            # Message status (for outgoing)
+            status_icon = ""
+            if direction == "outgoing":
+                status_icon = '<span class="message-status">✓✓</span>'
+            
+            # Build meta info
+            meta_html = ""
+            if msg.get("follow_up_needed"):
+                meta_html += '<div class="message-meta">🔴 Follow-up needed</div>'
+            if msg.get("notes"):
+                meta_html += f'<div class="message-meta">📝 {msg["notes"]}</div>'
+            
+            message_html = f"""
+            <div class="message-row {direction}">
+                <div class="message-bubble {direction}">
+                    <div class="message-text">{display_text}</div>
+                    <div class="message-footer">
+                        <span class="message-time">{ts.strftime("%H:%M")}</span>
+                        {status_icon}
+                    </div>
+                    {meta_html}
+                </div>
+            </div>
+            """
+            st.markdown(message_html, unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Auto-scroll to bottom
     st.markdown("""
     <script>
         setTimeout(function() {
-            window.parent.location.reload();
-        }, 5000);
+            var chatArea = document.getElementById('chat-messages');
+            if (chatArea) {
+                chatArea.scrollTop = chatArea.scrollHeight;
+            }
+        }, 100);
     </script>
     """, unsafe_allow_html=True)
-
-# Search bar
-search_query = st.text_input(
-    "Search",
-    placeholder="Search messages...",
-    key="search_conv",
-    label_visibility="collapsed"
-)
-
-# Fetch messages
-conv = fetch_conversation(phone, limit=CONV_LIMIT, offset=st.session_state.conv_offset)
-
-# Apply filters
-date_filter = st.session_state.filter_date if st.session_state.filter_by_date else None
-time_from = st.session_state.filter_time_from if st.session_state.filter_by_time else None
-time_to = st.session_state.filter_time_to if st.session_state.filter_by_time else None
-conv = filter_messages(conv, date_filter, time_from, time_to)
-
-# Sort messages (oldest first)
-conv.sort(key=lambda x: datetime.fromisoformat(x["timestamp"]), reverse=False)
-
-# Messages area
-st.markdown('<div class="messages-area" id="chat-messages">', unsafe_allow_html=True)
-
-if not conv:
-    st.markdown("""
-    <div class="empty-state">
-        <div class="empty-state-icon">📭</div>
-        <div class="empty-state-text">No messages yet</div>
-        <div class="empty-state-subtext">Start the conversation</div>
-    </div>
-    """, unsafe_allow_html=True)
-else:
-    current_date = None
-    for msg in conv:
-        ts = datetime.fromisoformat(msg["timestamp"])
-        msg_date = ts.date()
-        
-        # Date divider
-        if current_date != msg_date:
-            current_date = msg_date
-            if msg_date == date.today():
-                date_label = "TODAY"
-            elif msg_date == date.today().replace(day=date.today().day - 1):
-                date_label = "YESTERDAY"
-            else:
-                date_label = msg_date.strftime("%d/%m/%Y")
-            
-            st.markdown(f"""
-            <div class="date-divider">
-                <span>{date_label}</span>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        # Message direction
-        direction = "incoming" if msg["direction"] in ["user", "incoming"] else "outgoing"
-        
-        raw_text = msg["message"] or ""
-        display_text = raw_text
-        
-        # Highlight search matches
-        if search_query:
-            pattern = re.escape(search_query)
-            def repl(m):
-                return f"<span class='highlight'>{m.group(0)}</span>"
-            display_text = re.sub(pattern, repl, display_text, flags=re.IGNORECASE)
-        
-        # Escape HTML in the message text and replace newlines
-        display_text = html.escape(display_text)
-        display_text = display_text.replace("\n", "<br>")
-        
-        # Message status (for outgoing)
-        status_icon = ""
-        if direction == "outgoing":
-            status_icon = '<span class="message-status">✓✓</span>'
-        
-        # Build meta info inside the bubble
-        meta_html = ""
-        if msg.get("follow_up_needed"):
-            meta_html += '<div class="message-meta">🔴 Follow-up needed</div>'
-        if msg.get("notes"):
-            notes_text = html.escape(msg["notes"])
-            meta_html += f'<div class="message-meta">📝 {notes_text}</div>'
-        
-        message_html = f"""
-        <div class="message-row {direction}">
-            <div class="message-bubble {direction}">
-                <div class="message-text">{display_text}</div>
-                <div class="message-footer">
-                    <span class="message-time">{ts.strftime("%H:%M")}</span>
-                    {status_icon}
-                </div>
-                {meta_html}
-            </div>
-        </div>
-        """
-        st.markdown(message_html, unsafe_allow_html=True)
-
-st.markdown('</div>', unsafe_allow_html=True)
-
-# Auto-scroll to bottom
-st.markdown("""
-<script>
-    setTimeout(function() {
-        var chatArea = document.getElementById('chat-messages');
-        if (chatArea) {
-            chatArea.scrollTop = chatArea.scrollHeight;
-        }
-    }, 100);
-</script>
-""", unsafe_allow_html=True)
-
-# Pagination
-st.markdown('<div class="pagination-section">', unsafe_allow_html=True)
-col_p1, col_p2, col_p3 = st.columns([1, 2, 1])
-
-with col_p1:
-    prev_disabled = st.session_state.conv_offset == 0
-    if st.button("⬅️ Previous", disabled=prev_disabled):
-        st.session_state.conv_offset = max(0, st.session_state.conv_offset - CONV_LIMIT)
-        st.rerun()
-
-with col_p2:
-    start_idx = st.session_state.conv_offset + 1 if conv else 0
-    end_idx = st.session_state.conv_offset + len(conv)
-    st.markdown(f'<p class="pagination-info">Messages {start_idx}–{end_idx}</p>', unsafe_allow_html=True)
-
-with col_p3:
-    if st.button("Next ➡️"):
-        st.session_state.conv_offset += CONV_LIMIT
-        st.rerun()
-
-st.markdown('</div>', unsafe_allow_html=True)
-
-# Message input area
-st.markdown('<div class="message-input-area">', unsafe_allow_html=True)
-
-draft_key = f"new_msg_{phone}"
-type_key = f"msg_type_{phone}"
-tmpl_key = f"tmpl_{phone}"
-
-col_input1, col_input2 = st.columns([3, 1])
-
-with col_input1:
-    new_msg = st.text_area(
-        "Message",
-        value=st.session_state.get(draft_key, ""),
-        placeholder="Type a message...",
-        key=draft_key,
-        height=60,
-        label_visibility="collapsed"
-    )
-
-with col_input2:
-    msg_type_label = st.radio(
-        "Type",
-        ["Text", "Template"],
-        key=type_key,
-        horizontal=False
-    )
     
-    if msg_type_label == "Template":
-        template_name = st.text_input(
-            "Template",
-            placeholder="Template name",
-            key=tmpl_key,
-            label_visibility="collapsed"
-        )
-    else:
-        template_name = None
-
-if st.button("📤 Send", use_container_width=True, key=f"send_{phone}"):
-    msg_clean = (new_msg or "").strip()
-    if not msg_clean:
-        st.warning("Please type a message")
-    else:
-        msg_type = "template" if msg_type_label == "Template" else "text"
-        ok = send_whatsapp_message(phone, msg_clean, msg_type, template_name)
-        if ok:
-            st.success("✅ Message sent!")
-            if draft_key in st.session_state:
-                del st.session_state[draft_key]
-            import time
-            time.sleep(0.5)
+    # Pagination
+    st.markdown('<div class="pagination-section">', unsafe_allow_html=True)
+    col_p1, col_p2, col_p3 = st.columns([1, 2, 1])
+    
+    with col_p1:
+        prev_disabled = st.session_state.conv_offset == 0
+        if st.button("⬅️ Previous", disabled=prev_disabled):
+            st.session_state.conv_offset = max(0, st.session_state.conv_offset - CONV_LIMIT)
             st.rerun()
-
-st.markdown('</div>', unsafe_allow_html=True)
-
-# Update section
-update_msg = conv[0] if conv else None
-
-if update_msg:
-    st.markdown('<div class="update-section">', unsafe_allow_html=True)
-    st.markdown("### 📝 Update Status")
     
-    col_u1, col_u2 = st.columns(2)
-    with col_u1:
-        fu_flag = st.checkbox("🔴 Follow-up needed", value=update_msg.get("follow_up_needed", False))
-    with col_u2:
-        handler = st.text_input("👤 Handled by", value=update_msg.get("handled_by") or "")
+    with col_p2:
+        start_idx = st.session_state.conv_offset + 1 if conv else 0
+        end_idx = st.session_state.conv_offset + len(conv)
+        st.markdown(f'<p class="pagination-info">Messages {start_idx}–{end_idx}</p>', unsafe_allow_html=True)
     
-    notes = st.text_area("📝 Notes", value=update_msg.get("notes") or "", height=60)
-    
-    if st.button("💾 Save", use_container_width=True):
-        resp = requests.patch(
-            f"{API_BASE}/message/{update_msg['id']}",
-            json={"follow_up_needed": fu_flag, "notes": notes, "handled_by": handler}
-        )
-        if resp.status_code == 200:
-            st.success("✅ Updated!")
+    with col_p3:
+        if st.button("Next ➡️"):
+            st.session_state.conv_offset += CONV_LIMIT
             st.rerun()
-        else:
-            st.error(f"Error: {resp.text}")
     
     st.markdown('</div>', unsafe_allow_html=True)
-
-st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Message input area
+    st.markdown('<div class="message-input-area">', unsafe_allow_html=True)
+    
+    draft_key = f"new_msg_{phone}"
+    type_key = f"msg_type_{phone}"
+    tmpl_key = f"tmpl_{phone}"
+    
+    col_input1, col_input2 = st.columns([3, 1])
+    
+    with col_input1:
+        new_msg = st.text_area(
+            "Message",
+            value=st.session_state.get(draft_key, ""),
+            placeholder="Type a message...",
+            key=draft_key,
+            height=60,
+            label_visibility="collapsed"
+        )
+    
+    with col_input2:
+        msg_type_label = st.radio(
+            "Type",
+            ["Text", "Template"],
+            key=type_key,
+            horizontal=False
+        )
+        
+        if msg_type_label == "Template":
+            template_name = st.text_input(
+                "Template",
+                placeholder="Template name",
+                key=tmpl_key,
+                label_visibility="collapsed"
+            )
+        else:
+            template_name = None
+    
+    if st.button("📤 Send", use_container_width=True, key=f"send_{phone}"):
+        msg_clean = (new_msg or "").strip()
+        if not msg_clean:
+            st.warning("Please type a message")
+        else:
+            msg_type = "template" if msg_type_label == "Template" else "text"
+            ok = send_whatsapp_message(phone, msg_clean, msg_type, template_name)
+            if ok:
+                st.success("✅ Message sent!")
+                if draft_key in st.session_state:
+                    del st.session_state[draft_key]
+                import time
+                time.sleep(0.5)
+                st.rerun()
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Update section
+    update_msg = conv[0] if conv else None
+    
+    if update_msg:
+        st.markdown('<div class="update-section">', unsafe_allow_html=True)
+        st.markdown("### 📝 Update Status")
+        
+        col_u1, col_u2 = st.columns(2)
+        with col_u1:
+            fu_flag = st.checkbox("🔴 Follow-up needed", value=update_msg.get("follow_up_needed", False))
+        with col_u2:
+            handler = st.text_input("👤 Handled by", value=update_msg.get("handled_by") or "")
+        
+        notes = st.text_area("📝 Notes", value=update_msg.get("notes") or "", height=60)
+        
+        if st.button("💾 Save", use_container_width=True):
+            resp = requests.patch(
+                f"{API_BASE}/message/{update_msg['id']}",
+                json={"follow_up_needed": fu_flag, "notes": notes, "handled_by": handler}
+            )
+            if resp.status_code == 200:
+                st.success("✅ Updated!")
+                st.rerun()
+            else:
+                st.error(f"Error: {resp.text}")
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
