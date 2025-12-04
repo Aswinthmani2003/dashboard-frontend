@@ -62,6 +62,10 @@ if "filter_only_fu" not in st.session_state:
 if "show_filters" not in st.session_state:
     st.session_state.show_filters = False
 
+# Initialize automation states per contact
+if "automation_enabled" not in st.session_state:
+    st.session_state.automation_enabled = {}
+
 
 def get_base64_logo():
     """Load logo.png and convert to base64 for embedding"""
@@ -225,6 +229,26 @@ def get_css(theme):
                 align-items: center;
             }
             
+            .automation-badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                padding: 4px 10px;
+                border-radius: 12px;
+                font-size: 12px;
+                font-weight: 500;
+            }
+            
+            .automation-badge.active {
+                background: #00a884;
+                color: #fff;
+            }
+            
+            .automation-badge.inactive {
+                background: #ff3b30;
+                color: #fff;
+            }
+            
             .icon-btn {
                 color: #aebac1;
                 background: none;
@@ -319,6 +343,13 @@ def get_css(theme):
                 color: #53bdeb;
                 font-size: 14px;
                 line-height: 1;
+            }
+            
+            .message-sender {
+                color: #00a884;
+                font-size: 10px;
+                font-weight: 600;
+                margin-bottom: 2px;
             }
             
             .message-meta {
@@ -568,22 +599,6 @@ def get_css(theme):
                 background: #fff;
             }
             
-            .chat-container {
-                display: flex;
-                flex-direction: column;
-                height: calc(100vh - 120px);
-                background: #efeae2;
-                margin-top: -20px;
-            }
-            
-            .stSelectbox {
-                margin-bottom: 0 !important;
-            }
-            
-            [data-testid="stSelectbox"] {
-                margin-bottom: 0 !important;
-            }
-            
             .chat-header {
                 background: #ededed;
                 padding: 10px 16px;
@@ -635,6 +650,26 @@ def get_css(theme):
                 display: flex;
                 gap: 20px;
                 align-items: center;
+            }
+            
+            .automation-badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                padding: 4px 10px;
+                border-radius: 12px;
+                font-size: 12px;
+                font-weight: 500;
+            }
+            
+            .automation-badge.active {
+                background: #25d366;
+                color: #fff;
+            }
+            
+            .automation-badge.inactive {
+                background: #ff3b30;
+                color: #fff;
             }
             
             .icon-btn {
@@ -725,6 +760,13 @@ def get_css(theme):
                 color: #53bdeb;
                 font-size: 14px;
                 line-height: 1;
+            }
+            
+            .message-sender {
+                color: #25d366;
+                font-size: 10px;
+                font-weight: 600;
+                margin-bottom: 2px;
             }
             
             .message-meta {
@@ -1100,6 +1142,21 @@ def log_sent_message(phone: str, message: str, msg_type: str = "text"):
         return False
 
 
+def toggle_automation(phone: str, enabled: bool):
+    """Toggle automation for a specific contact"""
+    try:
+        payload = {
+            "phone": phone,
+            "automation_enabled": enabled
+        }
+        response = requests.post(f"{API_BASE}/toggle_automation", json=payload, timeout=10)
+        response.raise_for_status()
+        return True
+    except Exception as e:
+        st.error(f"Failed to toggle automation: {e}")
+        return False
+
+
 def get_initials(name):
     """Get initials from name for avatar"""
     if not name or name == "Unknown":
@@ -1108,6 +1165,20 @@ def get_initials(name):
     if len(parts) == 1:
         return parts[0][0].upper()
     return (parts[0][0] + parts[-1][0]).upper()
+
+
+def clean_message_text(raw_text):
+    """Aggressively clean message text by removing ALL HTML tags"""
+    if not raw_text:
+        return ""
+    
+    # Remove ALL HTML tags using regex - most aggressive approach
+    cleaned = re.sub(r'<[^>]+>', '', raw_text)
+    
+    # Normalize whitespace
+    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+    
+    return cleaned
 
 
 # Fetch and filter contacts
@@ -1172,10 +1243,18 @@ if not selected:
 client_name = selected["client_name"] or phone
 initials = get_initials(client_name)
 
-# Chat header
-col_h1, col_h2 = st.columns([6, 1])
+# Initialize automation state for this contact
+if phone not in st.session_state.automation_enabled:
+    st.session_state.automation_enabled[phone] = True  # Default: automation ON
+
+# Chat header with automation toggle
+col_h1, col_h2 = st.columns([5, 2])
 
 with col_h1:
+    automation_status = st.session_state.automation_enabled.get(phone, True)
+    badge_class = "active" if automation_status else "inactive"
+    badge_text = "🤖 Bot Active" if automation_status else "👤 Manual Mode"
+    
     st.markdown(f"""
     <div class="chat-header">
         <div class="chat-header-left">
@@ -1184,6 +1263,7 @@ with col_h1:
                 <h3>{client_name}</h3>
                 <p>{phone}</p>
             </div>
+            <span class="automation-badge {badge_class}">{badge_text}</span>
         </div>
         <div class="chat-header-actions">
             <button class="icon-btn">🔍</button>
@@ -1192,13 +1272,28 @@ with col_h1:
     """, unsafe_allow_html=True)
 
 with col_h2:
-    col_btn1, col_btn2 = st.columns(2)
+    col_btn1, col_btn2, col_btn3 = st.columns(3)
+    
     with col_btn1:
-        auto_refresh = st.checkbox("🔄", value=st.session_state.auto_refresh, key="auto_refresh_toggle", 
-                                   help="Auto-refresh")
-        st.session_state.auto_refresh = auto_refresh
+        # Automation toggle button
+        current_auto = st.session_state.automation_enabled.get(phone, True)
+        auto_button_label = "⏸️" if current_auto else "▶️"
+        auto_help = "Pause automation" if current_auto else "Resume automation"
+        
+        if st.button(auto_button_label, key="auto_toggle", help=auto_help):
+            new_state = not current_auto
+            if toggle_automation(phone, new_state):
+                st.session_state.automation_enabled[phone] = new_state
+                status_msg = "Automation paused - You can now chat manually" if not new_state else "Automation resumed - Bot is active"
+                st.success(status_msg)
+                st.rerun()
     
     with col_btn2:
+        auto_refresh = st.checkbox("🔄", value=st.session_state.auto_refresh, key="auto_refresh_toggle", 
+                                   help="Auto-refresh", label_visibility="collapsed")
+        st.session_state.auto_refresh = auto_refresh
+    
+    with col_btn3:
         if st.button("🗑️", key="del_all", help="Delete conversation"):
             if st.session_state.get('confirm_del'):
                 if delete_conversation(phone):
@@ -1272,30 +1367,34 @@ else:
             </div>
             """, unsafe_allow_html=True)
         
-        # Message direction - incoming from user (left), outgoing from bot (right)
-        if msg["direction"] in ["user", "incoming"]:
-            direction = "incoming"  # Left side - from client
-        else:
-            direction = "outgoing"  # Right side - from you/bot
+        # Determine message direction and sender
+        direction = "incoming" if msg["direction"] in ["user", "incoming"] else "outgoing"
         
+        # Determine who sent the message
+        sender_label = ""
+        if direction == "outgoing":
+            # For outgoing messages, check who sent it
+            handled_by = msg.get("handled_by", "")
+            if handled_by and "Dashboard User" in handled_by:
+                sender_label = "You"
+            else:
+                sender_label = "Chatbot"
+        
+        # Clean the message text - remove ALL HTML tags
         raw_text = msg["message"] or ""
+        raw_text = clean_message_text(raw_text)
         
-        # Remove unwanted HTML tags from the message content
-        raw_text = raw_text.replace("</div>", "").replace("<div>", "")
-        raw_text = raw_text.replace("</span>", "").replace("<span>", "")
-        raw_text = raw_text.strip()
-        
-        # Escape HTML first to prevent any HTML tags from rendering
+        # Escape HTML to prevent rendering
         display_text = html.escape(raw_text)
         
-        # Highlight search matches (after escaping)
+        # Highlight search matches
         if search_query:
             pattern = re.escape(search_query)
             def repl(m):
                 return f"<span class='highlight'>{m.group(0)}</span>"
             display_text = re.sub(pattern, repl, display_text, flags=re.IGNORECASE)
         
-        # Replace newlines with <br> (after escaping)
+        # Replace newlines with <br>
         display_text = display_text.replace("\n", "<br>")
         
         # Message status (for outgoing)
@@ -1303,7 +1402,10 @@ else:
         if direction == "outgoing":
             status_icon = '<span class="message-status">✓✓</span>'
         
-        # Build meta info inside the bubble
+        # Sender label HTML
+        sender_html = f'<div class="message-sender">{sender_label}</div>' if sender_label else ""
+        
+        # Build meta info
         meta_html = ""
         if msg.get("follow_up_needed"):
             meta_html += '<div class="message-meta">🔴 Follow-up needed</div>'
@@ -1314,6 +1416,7 @@ else:
         message_html = f"""
         <div class="message-row {direction}">
             <div class="message-bubble {direction}">
+                {sender_html}
                 <div class="message-text">{display_text}</div>
                 <div class="message-footer">
                     <span class="message-time">{ts.strftime("%H:%M")}</span>
@@ -1361,7 +1464,12 @@ with col_p3:
 
 st.markdown('</div>', unsafe_allow_html=True)
 
-# Message input area
+# Message input area - Show warning if automation is ON
+automation_active = st.session_state.automation_enabled.get(phone, True)
+
+if automation_active:
+    st.warning("⚠️ Automation is ACTIVE. Pause it using the ⏸️ button above to chat manually without bot interference.")
+
 st.markdown('<div class="message-input-area">', unsafe_allow_html=True)
 
 draft_key = f"new_msg_{phone}"
@@ -1374,10 +1482,11 @@ with col_input1:
     new_msg = st.text_area(
         "Message",
         value=st.session_state.get(draft_key, ""),
-        placeholder="Type a message...",
+        placeholder="Type a message..." if not automation_active else "⚠️ Pause automation first...",
         key=draft_key,
         height=60,
-        label_visibility="collapsed"
+        label_visibility="collapsed",
+        disabled=automation_active
     )
 
 with col_input2:
@@ -1385,7 +1494,8 @@ with col_input2:
         "Type",
         ["Text", "Template"],
         key=type_key,
-        horizontal=False
+        horizontal=False,
+        disabled=automation_active
     )
     
     if msg_type_label == "Template":
@@ -1393,12 +1503,14 @@ with col_input2:
             "Template",
             placeholder="Template name",
             key=tmpl_key,
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            disabled=automation_active
         )
     else:
         template_name = None
 
-if st.button("📤 Send", use_container_width=True, key=f"send_{phone}"):
+send_button_disabled = automation_active
+if st.button("📤 Send", use_container_width=True, key=f"send_{phone}", disabled=send_button_disabled):
     msg_clean = (new_msg or "").strip()
     if not msg_clean:
         st.warning("Please type a message")
@@ -1409,7 +1521,7 @@ if st.button("📤 Send", use_container_width=True, key=f"send_{phone}"):
             st.success("✅ Message sent!")
             if draft_key in st.session_state:
                 del st.session_state[draft_key]
-            # Reset offset to 0 to show the latest messages including the one just sent
+            # Reset offset to show latest messages
             st.session_state.conv_offset = 0
             import time
             time.sleep(0.5)
