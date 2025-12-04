@@ -462,10 +462,17 @@ def get_css(theme):
                 background: #4a5a63;
             }
             
-            /* Hide Streamlit branding */
-            #MainMenu {visibility: hidden;}
-            footer {visibility: hidden;}
-            header {visibility: hidden;}
+            /* Hide text area label */
+            .wa-input-area label {
+                display: none !important;
+            }
+            
+            /* Hide button labels in contact list */
+            .wa-contacts-list button {
+                position: absolute;
+                opacity: 0;
+                pointer-events: none;
+            }
             
             /* Date picker styling */
             .stDateInput input, .stTimeInput input {
@@ -896,6 +903,18 @@ def get_css(theme):
                 background: #aeb5bb;
             }
             
+            /* Hide text area label */
+            .wa-input-area label {
+                display: none !important;
+            }
+            
+            /* Hide button labels in contact list */
+            .wa-contacts-list button {
+                position: absolute;
+                opacity: 0;
+                pointer-events: none;
+            }
+            
             /* Hide Streamlit branding */
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
@@ -1126,17 +1145,9 @@ else:
         
         active_class = "active" if is_selected else ""
         
-        # WhatsApp-style contact card
-        if st.button(f"select_{phone}", key=phone, label_visibility="collapsed"):
-            st.session_state.selected_phone = phone
-            st.session_state.conv_offset = 0
-            draft_key = f"new_msg_{phone}"
-            if draft_key in st.session_state:
-                del st.session_state[draft_key]
-            st.rerun()
-        
-        st.markdown(f"""
-        <div class="wa-contact {active_class}">
+        # WhatsApp-style contact card with button
+        contact_html = f"""
+        <div class="wa-contact {active_class}" onclick="document.getElementById('btn_{phone}').click()">
             <div class="wa-contact-avatar">{initials}</div>
             <div class="wa-contact-info">
                 <div class="wa-contact-header">
@@ -1148,7 +1159,17 @@ else:
                 </div>
             </div>
         </div>
-        """, unsafe_allow_html=True)
+        """
+        st.markdown(contact_html, unsafe_allow_html=True)
+        
+        # Hidden button for functionality
+        if st.button(" ", key=f"btn_{phone}", help=client_name):
+            st.session_state.selected_phone = phone
+            st.session_state.conv_offset = 0
+            draft_key = f"new_msg_{phone}"
+            if draft_key in st.session_state:
+                del st.session_state[draft_key]
+            st.rerun()
 
 st.markdown('</div></div>', unsafe_allow_html=True)  # Close contacts-list and sidebar
 
@@ -1241,8 +1262,7 @@ else:
             value=st.session_state.get(draft_key, ""),
             placeholder="Type a message",
             key=draft_key,
-            height=50,
-            label_visibility="collapsed"
+            height=50
         )
     
     with col_send:
