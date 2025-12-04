@@ -4,7 +4,6 @@ from datetime import datetime, date, time
 import base64
 from pathlib import Path
 import re
-import html
 
 API_BASE = "https://dashboard-backend-qqmi.onrender.com"
 MAKE_WEBHOOK_URL = st.secrets.get("make_webhook_url", "")
@@ -1168,7 +1167,7 @@ def get_initials(name):
 
 
 def clean_message_text(raw_text):
-    """Aggressively clean message text by removing ALL HTML tags"""
+    """Clean message text by removing ALL HTML tags"""
     if not raw_text:
         return ""
     
@@ -1393,14 +1392,11 @@ else:
             else:
                 sender_label = "Chatbot"
         
-        # Clean the message text - remove ALL HTML tags
+        # Get raw message text
         raw_text = msg["message"] or ""
-        raw_text = clean_message_text(raw_text)
+        display_text = raw_text
         
-        # Escape HTML to prevent rendering
-        display_text = html.escape(raw_text)
-        
-        # Highlight search matches
+        # Highlight search matches BEFORE escaping
         if search_query:
             pattern = re.escape(search_query)
             def repl(m):
@@ -1423,8 +1419,7 @@ else:
         if msg.get("follow_up_needed"):
             meta_html += '<div class="message-meta">🔴 Follow-up needed</div>'
         if msg.get("notes"):
-            notes_text = html.escape(msg["notes"])
-            meta_html += f'<div class="message-meta">📝 {notes_text}</div>'
+            meta_html += f'<div class="message-meta">📝 {msg["notes"]}</div>'
         
         message_html = f"""
         <div class="message-row {direction}">
