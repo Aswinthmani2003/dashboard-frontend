@@ -491,7 +491,13 @@ def get_css(theme):
                 align-items: center;
                 justify-content: space-between;
             }
-            
+
+            .handler-meta {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 2px;
+            }
+
             .pagination-info {
                 color: #8696a0;
                 font-size: 14px;
@@ -691,6 +697,12 @@ def get_css(theme):
                 font-weight: 500;
                 flex: 1;
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            }
+
+            .handler-meta {
+            font-size: 11px;
+            color: #303030;   /* BLACK in light mode */
+            margin-top: 2px;
             }
             
             .logo-img {
@@ -1918,7 +1930,7 @@ with col2:
                     message_html += f'<div style="font-size: 11px; color: rgba(255, 255, 255, 0.6); margin-top: 4px; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 2px;">📝 {notes_text}</div>'
                 if msg.get("handled_by"):
                     handler_text = html.escape(msg["handled_by"])
-                    message_html += f'<div style="font-size: 11px; color: rgba(255, 255, 255, 0.6);">👤 {handler_text}</div>'
+                    message_html += f'<div class="handler-meta">👤 {handler_text}</div>'
                 
                 message_html += "</div></div>"
                 st.markdown(message_html, unsafe_allow_html=True)
@@ -2026,4 +2038,5 @@ with col2:
                 st.error(f"Error: {str(e)}")
         
         st.markdown('</div>', unsafe_allow_html=True)
+
 
