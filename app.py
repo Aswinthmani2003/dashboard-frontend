@@ -1,11 +1,12 @@
 import streamlit as st
 import requests
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timedelta
 import base64
 from pathlib import Path
 import re
 from zoneinfo import ZoneInfo
 import pytz
+import html
 
 API_BASE = "https://dashboard-backend-qqmi.onrender.com"
 MAKE_WEBHOOK_URL = st.secrets.get("make_webhook_url", "")
@@ -154,26 +155,6 @@ def get_css(theme):
             
             .filter-content {
                 padding: 16px;
-            }
-            
-            .filter-row {
-                display: flex;
-                gap: 12px;
-                margin-bottom: 12px;
-                flex-wrap: wrap;
-            }
-            
-            .filter-group {
-                flex: 1;
-                min-width: 200px;
-            }
-            
-            .filter-group label {
-                color: #8696a0;
-                font-size: 12px;
-                margin-bottom: 4px;
-                display: block;
-                font-weight: 400;
             }
             
             /* WhatsApp Sidebar Contacts */
@@ -436,16 +417,6 @@ def get_css(theme):
             .message-status.delivered { color: #8696a0; }
             .message-status.read { color: #53bdeb; }
             
-            /* WhatsApp Input Area */
-            .input-area {
-                background: #202c33;
-                padding: 10px 16px;
-                border-top: 1px solid #2a3942;
-                position: sticky;
-                bottom: 0;
-                z-index: 100;
-            }
-            
             /* Update section */
             .update-section {
                 background-color: #202c33;
@@ -517,17 +488,6 @@ def get_css(theme):
                 box-shadow: 0 2px 8px rgba(0, 168, 132, 0.3);
             }
             
-            .delete-btn {
-                background-color: #dc3545 !important;
-                padding: 4px 8px !important;
-                font-size: 11px !important;
-                border-radius: 4px !important;
-                color: white !important;
-                border: none !important;
-                cursor: pointer;
-                margin-top: 4px;
-            }
-            
             /* Input fields */
             .stTextInput input, .stTextArea textarea {
                 background-color: #2a3942 !important;
@@ -596,50 +556,6 @@ def get_css(theme):
                 padding-top: 0rem !important;
             }
             
-            /* Header buttons */
-            .header-buttons {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            }
-            
-            /* Filter actions */
-            .filter-actions {
-                display: flex;
-                gap: 10px;
-                margin-top: 20px;
-                justify-content: flex-end;
-            }
-            
-            /* Top buttons */
-            .top-buttons-row {
-                display: flex;
-                gap: 10px;
-                margin-bottom: 15px;
-            }
-            
-            /* Search input */
-            .search-input {
-                background-color: #202c33;
-                border: none;
-                border-bottom: 1px solid #2a3942;
-                padding: 8px 12px;
-                color: #e9edef;
-                font-size: 14px;
-                width: 100%;
-            }
-            
-            /* Status indicators */
-            .status-online {
-                color: #00a884;
-                font-size: 11px;
-            }
-            
-            .status-offline {
-                color: #8696a0;
-                font-size: 11px;
-            }
-            
             /* Avatar colors based on name */
             .avatar-color-0 { background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%) !important; }
             .avatar-color-1 { background: linear-gradient(135deg, #48dbfb 0%, #0abde3 100%) !important; }
@@ -698,62 +614,7 @@ def get_css(theme):
                 border: 1px solid #dddfe2;
             }
             
-            /* Filter section */
-            .filter-container {
-                background-color: #ffffff;
-                border: 1px solid #dddfe2;
-                border-radius: 8px;
-                padding: 0;
-                margin-bottom: 12px;
-                overflow: hidden;
-                margin-top: 10px;
-            }
-            
-            .filter-header {
-                background-color: #f0f2f5;
-                padding: 12px 16px;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                cursor: pointer;
-                border-bottom: 1px solid #dddfe2;
-            }
-            
-            .filter-header h3 {
-                color: #3b4a54;
-                margin: 0;
-                font-size: 14px;
-                font-weight: 500;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-            }
-            
-            .filter-content {
-                padding: 16px;
-            }
-            
-            .filter-row {
-                display: flex;
-                gap: 12px;
-                margin-bottom: 12px;
-                flex-wrap: wrap;
-            }
-            
-            .filter-group {
-                flex: 1;
-                min-width: 200px;
-            }
-            
-            .filter-group label {
-                color: #667781;
-                font-size: 12px;
-                margin-bottom: 4px;
-                display: block;
-                font-weight: 400;
-            }
-            
-            /* WhatsApp Sidebar Contacts */
+            /* Contact cards and other styles similar to dark mode but with light colors */
             .contact-card {
                 background-color: transparent;
                 padding: 12px;
@@ -775,460 +636,23 @@ def get_css(theme):
                 background-color: #e4e6eb;
             }
             
-            .contact-avatar {
-                width: 49px;
-                height: 49px;
-                border-radius: 50%;
-                background: linear-gradient(135deg, #00a884 0%, #008069 100%);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 20px;
-                color: white;
-                font-weight: 500;
-                flex-shrink: 0;
-            }
-            
-            .contact-info {
-                flex: 1;
-                min-width: 0;
-                padding-right: 40px;
-            }
-            
-            .contact-name {
-                color: #3b4a54;
-                font-size: 17px;
-                font-weight: 400;
-                margin-bottom: 2px;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            }
-            
-            .contact-preview {
-                color: #667781;
-                font-size: 14px;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                font-weight: 400;
-            }
-            
-            .contact-meta {
-                position: absolute;
-                top: 12px;
-                right: 12px;
-                text-align: right;
-            }
-            
-            .contact-time {
-                color: #667781;
-                font-size: 12px;
-                margin-bottom: 4px;
-            }
-            
-            .unread-indicator {
-                background-color: #00a884;
-                color: white;
-                font-size: 12px;
-                font-weight: 600;
-                min-width: 20px;
-                height: 20px;
-                border-radius: 10px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                margin-left: auto;
-            }
-            
-            /* WhatsApp Chat Header */
-            .chat-header {
-                background: #f0f2f5;
-                padding: 10px 16px;
-                margin-bottom: 1px;
-                border-bottom: 1px solid #dddfe2;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                height: 60px;
-            }
-            
-            .chat-header-left {
-                display: flex;
-                align-items: center;
-                gap: 15px;
-                flex: 1;
-            }
-            
-            .chat-avatar {
-                width: 40px;
-                height: 40px;
-                border-radius: 50%;
-                background: linear-gradient(135deg, #00a884 0%, #008069 100%);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 18px;
-                color: white;
-                font-weight: 500;
-            }
-            
-            .chat-header-info h3 {
-                color: #3b4a54;
-                margin: 0 0 2px 0;
-                font-size: 16px;
-                font-weight: 500;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            }
-            
-            .chat-header-info p {
-                color: #667781;
-                margin: 0;
-                font-size: 13px;
-                font-weight: 400;
-            }
-            
-            .chat-header-actions {
-                display: flex;
-                gap: 20px;
-                align-items: center;
-            }
-            
-            .chat-status {
-                color: #00a884;
-                font-size: 13px;
-                font-weight: 400;
-            }
-            
-            /* WhatsApp Chat Area */
-            .chat-container {
-                background: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
-                background-size: contain;
-                background-position: center;
-                padding: 20px 16px;
-                min-height: calc(100vh - 240px);
-                position: relative;
-            }
-            
-            .chat-container::before {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(234, 230, 223, 0.85);
-                pointer-events: none;
-            }
-            
-            /* WhatsApp Message Bubbles */
-            .message-row {
-                display: flex;
-                margin-bottom: 8px;
-                position: relative;
-                z-index: 1;
-            }
-            
-            .message-row.user {
-                justify-content: flex-start;
-            }
-            
-            .message-row.bot {
-                justify-content: flex-end;
-            }
-            
-            .message-bubble {
-                max-width: 65%;
-                padding: 8px 9px;
-                border-radius: 7.5px;
-                position: relative;
-                box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
-                word-wrap: break-word;
-            }
-            
             .message-bubble.user {
                 background-color: #ffffff;
-                border-top-left-radius: 0;
                 border: 1px solid #e0e0e0;
             }
             
             .message-bubble.bot {
                 background-color: #dcf8c6;
-                border-top-right-radius: 0;
-            }
-            
-            .message-bubble.user::before {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: -8px;
-                width: 8px;
-                height: 13px;
-                background-color: #ffffff;
-                border-bottom-right-radius: 10px;
-                border-left: 1px solid #e0e0e0;
-                border-bottom: 1px solid #e0e0e0;
-            }
-            
-            .message-bubble.bot::before {
-                content: '';
-                position: absolute;
-                top: 0;
-                right: -8px;
-                width: 8px;
-                height: 13px;
-                background-color: #dcf8c6;
-                border-bottom-left-radius: 10px;
             }
             
             .message-text {
                 color: #303030;
-                font-size: 14.2px;
-                line-height: 19px;
-                margin-bottom: 4px;
-                word-wrap: break-word;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            }
-            
-            .message-time {
-                color: rgba(0, 0, 0, 0.45);
-                font-size: 11px;
-                text-align: right;
-                margin-top: 2px;
-                display: flex;
-                justify-content: flex-end;
-                align-items: center;
-                gap: 4px;
-            }
-            
-            .message-meta {
-                display: flex;
-                align-items: center;
-                gap: 4px;
-            }
-            
-            .message-status {
-                font-size: 13px;
-            }
-            
-            .message-status.sent { color: #667781; }
-            .message-status.delivered { color: #667781; }
-            .message-status.read { color: #53bdeb; }
-            
-            /* WhatsApp Input Area */
-            .input-area {
-                background: #f0f2f5;
-                padding: 10px 16px;
-                border-top: 1px solid #dddfe2;
-                position: sticky;
-                bottom: 0;
-                z-index: 100;
-            }
-            
-            /* Update section */
-            .update-section {
-                background-color: #ffffff;
-                border-radius: 8px;
-                padding: 16px;
-                margin-top: 16px;
-                border: 1px solid #dddfe2;
-            }
-            
-            .update-section h3 {
-                color: #3b4a54 !important;
-                font-size: 16px !important;
-                margin-bottom: 12px !important;
-                font-weight: 500 !important;
-            }
-            
-            /* Send section */
-            .send-section {
-                background-color: #ffffff;
-                border-radius: 8px;
-                padding: 16px;
-                margin-top: 16px;
-                border: 1px solid #dddfe2;
-            }
-            
-            .send-section h3 {
-                color: #3b4a54 !important;
-                font-size: 16px !important;
-                margin-bottom: 12px !important;
-                font-weight: 500 !important;
-            }
-            
-            .pagination-section {
-                background-color: #ffffff;
-                border-radius: 8px;
-                padding: 12px 16px;
-                margin-top: 12px;
-                border: 1px solid #dddfe2;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-            }
-            
-            .pagination-info {
-                color: #667781;
-                font-size: 14px;
-                margin: 0;
-                text-align: center;
-                flex: 1;
-            }
-            
-            /* WhatsApp Buttons */
-            .stButton > button {
-                background-color: #00a884 !important;
-                color: white !important;
-                border: none !important;
-                font-weight: 600 !important;
-                border-radius: 24px !important;
-                font-size: 14px !important;
-                padding: 10px 24px !important;
-                height: auto !important;
-                min-height: 40px !important;
-                transition: all 0.2s !important;
-            }
-            
-            .stButton > button:hover {
-                background-color: #06cf9c !important;
-                transform: translateY(-1px);
-                box-shadow: 0 2px 8px rgba(0, 168, 132, 0.3);
-            }
-            
-            .delete-btn {
-                background-color: #dc3545 !important;
-                padding: 4px 8px !important;
-                font-size: 11px !important;
-                border-radius: 4px !important;
-                color: white !important;
-                border: none !important;
-                cursor: pointer;
-                margin-top: 4px;
-            }
-            
-            /* Input fields */
-            .stTextInput input, .stTextArea textarea {
-                background-color: #ffffff !important;
-                color: #3b4a54 !important;
-                border: 1px solid #dddfe2 !important;
-                border-radius: 8px !important;
-                font-size: 14px !important;
-                padding: 12px !important;
-            }
-            
-            .stTextInput input:focus, .stTextArea textarea:focus {
-                border-color: #00a884 !important;
-                box-shadow: 0 0 0 1px #00a884 !important;
-            }
-            
-            /* Checkbox */
-            [data-testid="stCheckbox"] label {
-                color: #3b4a54 !important;
-                font-size: 14px !important;
-            }
-            
-            /* Selectbox */
-            .stSelectbox label {
-                color: #3b4a54 !important;
-            }
-            
-            /* Radio buttons */
-            .stRadio label {
-                color: #3b4a54 !important;
-            }
-            
-            /* Date and time inputs */
-            .stDateInput input, .stTimeInput input {
-                background-color: #ffffff !important;
-                color: #3b4a54 !important;
-                border: 1px solid #dddfe2 !important;
-                border-radius: 8px !important;
-            }
-            
-            /* Scrollbar */
-            ::-webkit-scrollbar {
-                width: 6px;
-                height: 6px;
-            }
-            
-            ::-webkit-scrollbar-track {
-                background: #f0f2f5;
-            }
-            
-            ::-webkit-scrollbar-thumb {
-                background: #bcc0c4;
-                border-radius: 3px;
-            }
-            
-            ::-webkit-scrollbar-thumb:hover {
-                background: #a0a4a8;
             }
             
             /* Hide streamlit elements */
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
             header {visibility: hidden;}
-            
-            /* Override streamlit's default padding */
-            .main .block-container {
-                padding-top: 0rem !important;
-            }
-            
-            /* Header buttons */
-            .header-buttons {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            }
-            
-            /* Filter actions */
-            .filter-actions {
-                display: flex;
-                gap: 10px;
-                margin-top: 20px;
-                justify-content: flex-end;
-            }
-            
-            /* Top buttons */
-            .top-buttons-row {
-                display: flex;
-                gap: 10px;
-                margin-bottom: 15px;
-            }
-            
-            /* Search input */
-            .search-input {
-                background-color: #ffffff;
-                border: none;
-                border-bottom: 1px solid #dddfe2;
-                padding: 8px 12px;
-                color: #3b4a54;
-                font-size: 14px;
-                width: 100%;
-            }
-            
-            /* Status indicators */
-            .status-online {
-                color: #00a884;
-                font-size: 11px;
-            }
-            
-            .status-offline {
-                color: #667781;
-                font-size: 11px;
-            }
-            
-            /* Avatar colors */
-            .avatar-color-0 { background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%) !important; }
-            .avatar-color-1 { background: linear-gradient(135deg, #48dbfb 0%, #0abde3 100%) !important; }
-            .avatar-color-2 { background: linear-gradient(135deg, #1dd1a1 0%, #00b894 100%) !important; }
-            .avatar-color-3 { background: linear-gradient(135deg, #f368e0 0%, #ff9ff3 100%) !important; }
-            .avatar-color-4 { background: linear-gradient(135deg, #ff9f43 0%, #feca57 100%) !important; }
-            .avatar-color-5 { background: linear-gradient(135deg, #54a0ff 0%, #2e86de 100%) !important; }
-            .avatar-color-6 { background: linear-gradient(135deg, #5f27cd 0%, #341f97 100%) !important; }
-            .avatar-color-7 { background: linear-gradient(135deg, #00d2d3 0%, #01a3a4 100%) !important; }
         </style>
         """
 
@@ -1268,10 +692,7 @@ with col2:
 
 if st.session_state.show_filters:
     st.markdown('<div class="filter-container">', unsafe_allow_html=True)
-    st.markdown('<div class="filter-header">', unsafe_allow_html=True)
-    st.markdown('<h3><span>🔍</span> Filter Options</h3>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-    
+    st.markdown('<div class="filter-header"><h3><span>🔍</span> Filter Options</h3></div>', unsafe_allow_html=True)
     st.markdown('<div class="filter-content">', unsafe_allow_html=True)
     
     col1, col2 = st.columns(2)
@@ -1331,31 +752,21 @@ if st.session_state.show_filters:
         key="filter_only_fu_check"
     )
     
-    st.markdown('<div class="filter-actions">', unsafe_allow_html=True)
     if st.button("Apply Filters", use_container_width=True, type="primary"):
         st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
     
-    st.markdown('</div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('</div></div>', unsafe_allow_html=True)
 
 
 def convert_to_ist(timestamp_str: str) -> datetime:
     """Convert ISO timestamp string to IST datetime object"""
     try:
-        # Parse the timestamp
         dt = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
-        
-        # If it's naive (no timezone), assume it's UTC
         if dt.tzinfo is None:
             dt = pytz.utc.localize(dt)
-        
-        # Convert to IST
         ist_dt = dt.astimezone(IST)
         return ist_dt
     except Exception as e:
-        st.error(f"Error converting time: {e}")
-        # Return current IST time as fallback
         return datetime.now(IST)
 
 
@@ -1370,16 +781,12 @@ def format_contact_time(timestamp_str: str) -> str:
     ist_dt = convert_to_ist(timestamp_str)
     now = datetime.now(IST)
     
-    # If today, show time
     if ist_dt.date() == now.date():
         return ist_dt.strftime("%I:%M %p").lstrip('0')
-    # If yesterday
     elif ist_dt.date() == (now.date() - timedelta(days=1)):
         return "Yesterday"
-    # If within last 7 days
     elif (now - ist_dt).days < 7:
         return ist_dt.strftime("%a")
-    # Otherwise show date
     else:
         return ist_dt.strftime("%d/%m")
 
@@ -1396,7 +803,6 @@ def get_avatar_initials(name: str) -> str:
     if not name or name == "Unknown":
         return "?"
     
-    # Extract first letter of each word, max 2 letters
     words = name.split()
     if len(words) >= 2:
         return (words[0][0] + words[-1][0]).upper()
@@ -1406,23 +812,22 @@ def get_avatar_initials(name: str) -> str:
         return name[0].upper() if name else "?"
 
 
-from datetime import timedelta
-
-
 def fetch_contacts(only_follow_up: bool):
     try:
-        r = requests.get(f"{API_BASE}/contacts", params={"only_follow_up": only_follow_up})
+        r = requests.get(f"{API_BASE}/contacts", params={"only_follow_up": only_follow_up}, timeout=10)
         r.raise_for_status()
         contacts_data = r.json()
         
-        # Get conversation for each contact to get last message time
         for contact in contacts_data:
             phone = contact["phone"]
             try:
                 conv = fetch_conversation(phone, limit=1, offset=0)
                 if conv:
                     contact["last_message_time"] = conv[0]["timestamp"]
-                    contact["last_message_preview"] = conv[0]["message"][:30] + "..." if len(conv[0]["message"]) > 30 else conv[0]["message"]
+                    # Escape HTML in preview
+                    raw_msg = conv[0]["message"] or ""
+                    clean_msg = html.escape(raw_msg)
+                    contact["last_message_preview"] = clean_msg[:30] + "..." if len(clean_msg) > 30 else clean_msg
                 else:
                     contact["last_message_time"] = None
                     contact["last_message_preview"] = "No messages yet"
@@ -1440,10 +845,16 @@ def fetch_conversation(phone: str, limit: int = 50, offset: int = 0):
     try:
         r = requests.get(
             f"{API_BASE}/conversation/{phone}",
-            params={"limit": limit, "offset": offset}
+            params={"limit": limit, "offset": offset},
+            timeout=10
         )
         r.raise_for_status()
         return r.json()
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 404:
+            return []
+        st.error(f"Error fetching conversation: {e}")
+        return []
     except Exception as e:
         st.error(f"Error fetching conversation: {e}")
         return []
@@ -1451,7 +862,7 @@ def fetch_conversation(phone: str, limit: int = 50, offset: int = 0):
 
 def delete_conversation(phone: str):
     try:
-        r = requests.delete(f"{API_BASE}/conversation/{phone}")
+        r = requests.delete(f"{API_BASE}/conversation/{phone}", timeout=10)
         return r.status_code == 200
     except:
         return False
@@ -1459,7 +870,7 @@ def delete_conversation(phone: str):
 
 def delete_message(msg_id: int):
     try:
-        r = requests.delete(f"{API_BASE}/message/{msg_id}")
+        r = requests.delete(f"{API_BASE}/message/{msg_id}", timeout=10)
         return r.status_code == 200
     except:
         return False
@@ -1560,20 +971,16 @@ if "selected_phone" not in st.session_state:
 if "conv_offset" not in st.session_state:
     st.session_state.conv_offset = 0
 
-if "last_message_count" not in st.session_state:
-    st.session_state.last_message_count = {}
-
 if "auto_refresh" not in st.session_state:
-    st.session_state.auto_refresh = True
+    st.session_state.auto_refresh = False
 
-CONV_LIMIT = 20
+CONV_LIMIT = 50
 
 col1, col2 = st.columns([1, 2.5])
 
 with col1:
     st.markdown("### 💬 Contacts")
     
-    # Search in contacts
     search_query = st.text_input(
         "Search contacts...",
         placeholder="Type to search...",
@@ -1593,34 +1000,17 @@ with col1:
         phone = c["phone"]
         is_selected = st.session_state.selected_phone == phone
         
-        # Calculate unread messages for this contact
-        unread_count = sum(1 for msg in fetch_conversation(phone, limit=50) if msg.get("follow_up_needed"))
+        if st.button(f"{client_name} ({phone})", key=f"contact_{phone}", use_container_width=True):
+            st.session_state.selected_phone = phone
+            st.session_state.conv_offset = 0
+            st.rerun()
         
-        # Get avatar color and initials
         color_index = get_avatar_color(client_name)
         initials = get_avatar_initials(client_name)
         
-        # Format last message time
         last_time = ""
         if c.get("last_message_time"):
             last_time = format_contact_time(c["last_message_time"])
-        
-        # Create contact card HTML
-        contact_html = f"""
-        <div class="contact-card {'selected' if is_selected else ''}" onclick="window.location.href='?phone={phone}';">
-            <div class="contact-avatar avatar-color-{color_index}">{initials}</div>
-            <div class="contact-info">
-                <div class="contact-name">{client_name}</div>
-                <div class="contact-preview">{c.get('last_message_preview', '')}</div>
-            </div>
-            <div class="contact-meta">
-                <div class="contact-time">{last_time}</div>
-                {f'<div class="unread-indicator">{unread_count}</div>' if unread_count > 0 else ''}
-            </div>
-        </div>
-        """
-        
-        st.markdown(contact_html, unsafe_allow_html=True)
 
 with col2:
     phone = st.session_state.selected_phone
@@ -1636,15 +1026,12 @@ with col2:
     
     client_name = selected["client_name"] or phone
     
-    # Get avatar color and initials
     color_index = get_avatar_color(client_name)
     initials = get_avatar_initials(client_name)
     
     col_toggle1, col_toggle2 = st.columns([3, 1])
-    with col_toggle1:
-        pass
     with col_toggle2:
-        auto_refresh = st.checkbox("🔄 Auto-refresh", value=st.session_state.auto_refresh, key="auto_refresh_toggle")
+        auto_refresh = st.checkbox("🔄 Auto", value=st.session_state.auto_refresh, key="auto_refresh_toggle")
         st.session_state.auto_refresh = auto_refresh
     
     if st.session_state.auto_refresh:
@@ -1652,18 +1039,17 @@ with col2:
         <script>
             setTimeout(function() {
                 window.parent.location.reload();
-            }, 5000);
+            }, 10000);
         </script>
         """, unsafe_allow_html=True)
     
-    # WhatsApp-like chat header
     st.markdown(f"""
     <div class="chat-header">
         <div class="chat-header-left">
             <div class="chat-avatar avatar-color-{color_index}">{initials}</div>
             <div class="chat-header-info">
-                <h3>{client_name}</h3>
-                <p>{phone}</p>
+                <h3>{html.escape(client_name)}</h3>
+                <p>{html.escape(phone)}</p>
             </div>
         </div>
         <div class="chat-header-actions">
@@ -1672,7 +1058,6 @@ with col2:
     </div>
     """, unsafe_allow_html=True)
     
-    # Delete button
     if st.button("🗑️ Delete All", key="del_all"):
         if st.session_state.get('confirm_del'):
             if delete_conversation(phone):
@@ -1683,42 +1068,32 @@ with col2:
             st.session_state.confirm_del = True
             st.warning("Click again to confirm deletion")
     
-    # Search in conversation
-    search_query = st.text_input(
+    search_conv = st.text_input(
         "Search in this chat",
         placeholder="Type to search messages...",
         key="search_conv",
         label_visibility="collapsed"
     )
     
-    # Fetch conversation
     conv = fetch_conversation(phone, limit=CONV_LIMIT, offset=st.session_state.conv_offset)
     
-    # Apply filters
     date_filter = st.session_state.filter_date if st.session_state.filter_by_date else None
     time_from = st.session_state.filter_time_from if st.session_state.filter_by_time else None
     time_to = st.session_state.filter_time_to if st.session_state.filter_by_time else None
     conv = filter_messages(conv, date_filter, time_from, time_to)
     
-    # Sort messages chronologically
     conv.sort(key=lambda x: convert_to_ist(x["timestamp"]), reverse=False)
     
-    # Calculate unread messages
-    unread_count = sum(1 for m in conv if m.get("follow_up_needed"))
-    
-    # WhatsApp chat container
     st.markdown('<div class="chat-container">', unsafe_allow_html=True)
     
     if not conv:
         st.info("📭 No messages yet")
     else:
-        # Group messages by date
         current_date = None
         for msg in conv:
             msg_dt = convert_to_ist(msg["timestamp"])
             msg_date = msg_dt.date()
             
-            # Show date separator if date changed
             if current_date != msg_date:
                 current_date = msg_date
                 today = datetime.now(IST).date()
@@ -1735,17 +1110,17 @@ with col2:
             direction = "user" if msg["direction"] in ["user", "incoming"] else "bot"
             
             raw_text = msg["message"] or ""
-            display_text = raw_text
+            # Escape HTML to prevent tag rendering
+            display_text = html.escape(raw_text)
             
-            if search_query:
-                pattern = re.escape(search_query)
+            if search_conv:
+                pattern = re.escape(search_conv)
                 def repl(m):
                     return f"<span style='background-color: #ffd700; padding: 0 1px; border-radius: 2px;'>{m.group(0)}</span>"
                 display_text = re.sub(pattern, repl, display_text, flags=re.IGNORECASE)
             
             display_text = display_text.replace("\n", "<br>")
             
-            # Format message time
             msg_time = format_message_time(msg["timestamp"])
             
             message_html = f"""
@@ -1762,16 +1137,15 @@ with col2:
             """
             
             if msg.get("notes"):
-                message_html += f'<div style="font-size: 11px; color: rgba(255, 255, 255, 0.6); margin-top: 4px; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 2px;">📝 {msg["notes"]}</div>'
+                message_html += f'<div style="font-size: 11px; color: rgba(255, 255, 255, 0.6); margin-top: 4px; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 2px;">📝 {html.escape(msg["notes"])}</div>'
             if msg.get("handled_by"):
-                message_html += f'<div style="font-size: 11px; color: rgba(255, 255, 255, 0.6);">👤 {msg["handled_by"]}</div>'
+                message_html += f'<div style="font-size: 11px; color: rgba(255, 255, 255, 0.6);">👤 {html.escape(msg["handled_by"])}</div>'
             
             message_html += "</div></div>"
             st.markdown(message_html, unsafe_allow_html=True)
     
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # Pagination
     st.markdown('<div class="pagination-section">', unsafe_allow_html=True)
     col_p1, col_p2, col_p3 = st.columns([1, 2, 1])
 
@@ -1793,7 +1167,6 @@ with col2:
     
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # Send message section
     st.markdown('<div class="send-section">', unsafe_allow_html=True)
     st.markdown("### ✉️ Send Message")
     col_s1, col_s2 = st.columns([3, 1])
@@ -1842,7 +1215,6 @@ with col2:
     
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # Update follow-up status section
     update_msg = conv[0] if conv else None
     
     if update_msg:
@@ -1860,7 +1232,8 @@ with col2:
         if st.button("💾 Save Follow-up", use_container_width=True):
             resp = requests.patch(
                 f"{API_BASE}/message/{update_msg['id']}",
-                json={"follow_up_needed": fu_flag, "notes": notes, "handled_by": handler}
+                json={"follow_up_needed": fu_flag, "notes": notes, "handled_by": handler},
+                timeout=10
             )
             if resp.status_code == 200:
                 st.success("✅ Saved!")
