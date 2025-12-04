@@ -1803,40 +1803,22 @@ with col2:
             }, 5000);
         </script>
         """, unsafe_allow_html=True)
-    # Compute user's activity status
-try:
-    if conv:
-        last_time = max(convert_to_ist(m["timestamp"]) for m in conv)
-        diff_sec = (datetime.now(IST) - last_time).total_seconds()
-
-        if diff_sec < 120:
-            status_text = "Online"
-        elif diff_sec < 1800:
-            status_text = f"Last seen {last_time.strftime('%I:%M %p').lstrip('0')}"
-        else:
-            status_text = f"Last seen {last_time.strftime('%d %b %I:%M %p').lstrip('0')}"
-    else:
-        status_text = ""
-except:
-    status_text = ""
-
     
     # WhatsApp-like chat header
     st.markdown(f"""
-<div class="chat-header">
-    <div class="chat-header-left">
-        <div class="chat-avatar avatar-color-{color_index}">{initials}</div>
-        <div class="chat-header-info">
-            <h3>{html.escape(client_name)}</h3>
-            <p>{phone}</p>
+    <div class="chat-header">
+        <div class="chat-header-left">
+            <div class="chat-avatar avatar-color-{color_index}">{initials}</div>
+            <div class="chat-header-info">
+                <h3>{html.escape(client_name)}</h3>
+                <p>{phone}</p>
+            </div>
+        </div>
+        <div class="chat-header-actions">
+            <span class="chat-status">Online</span>
         </div>
     </div>
-    <div class="chat-header-actions">
-        <span class="chat-status">{status_text}</span>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
+    """, unsafe_allow_html=True)
     
     # Delete button
     if st.button("🗑️ Delete All", key="del_all"):
