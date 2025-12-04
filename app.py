@@ -1392,11 +1392,12 @@ else:
             else:
                 sender_label = "Chatbot"
         
-        # Get raw message text
+        # Get raw message text and CLEAN IT to remove HTML tags
         raw_text = msg["message"] or ""
+        raw_text = clean_message_text(raw_text)  # Remove all HTML tags from database
         display_text = raw_text
         
-        # Highlight search matches BEFORE escaping
+        # Highlight search matches
         if search_query:
             pattern = re.escape(search_query)
             def repl(m):
