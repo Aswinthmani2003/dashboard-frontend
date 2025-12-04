@@ -1491,18 +1491,36 @@ with col1:
                 except:
                     pass
             
-            # Create button with custom styling
-            fu_indicator = "🔴 " if c.get("follow_up_open") else ""
-            button_label = f"{fu_indicator}{initials} {client_name}"
+            selected_class = "selected" if is_selected else ""
+            fu_badge = f'<div class="follow-up-badge">FU</div>' if c.get("follow_up_open") else ""
             
-            if st.button(button_label, key=phone, use_container_width=True, 
-                        type="primary" if is_selected else "secondary"):
-                st.session_state.selected_phone = phone
-                st.session_state.conv_offset = 0
-                draft_key = f"new_msg_{phone}"
-                if draft_key in st.session_state:
-                    del st.session_state[draft_key]
-                st.rerun()
+            contact_html = f"""
+            <div class="contact-card {selected_class}" onclick="return true;">
+                <div class="contact-avatar">{initials}</div>
+                <div class="contact-info">
+                    <div class="contact-name">{client_name}</div>
+                    <div class="contact-preview">{last_msg or "No messages"}</div>
+                </div>
+                <div class="contact-time">{last_time}</div>
+                {fu_badge}
+            </div>
+            """
+            
+            # Create invisible button for click functionality
+            button_col1, button_col2 = st.columns([0.01, 1])
+            with button_col2:
+                if st.button(f"select_{phone}", key=f"btn_{phone}", 
+                            use_container_width=True,
+                            type="primary" if is_selected else "secondary"):
+                    st.session_state.selected_phone = phone
+                    st.session_state.conv_offset = 0
+                    draft_key = f"new_msg_{phone}"
+                    if draft_key in st.session_state:
+                        del st.session_state[draft_key]
+                    st.rerun()
+            
+            # Overlay the contact card HTML on top
+            st.markdown(contact_html, unsafe_allow_html=True)
     
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -1648,13 +1666,6 @@ with col2:
             if direction == "outgoing":
                 status_icon = '<span class="message-status">✓✓</span>'
             
-            # Build meta info
-            meta_html = ""
-            if msg.get("follow_up_needed"):
-                meta_html += '<div class="message-meta">🔴 Follow-up needed</div>'
-            if msg.get("notes"):
-                meta_html += f'<div class="message-meta">📝 {msg["notes"]}</div>'
-            
             message_html = f"""
             <div class="message-row {direction}">
                 <div class="message-bubble {direction}">
@@ -1663,10 +1674,14 @@ with col2:
                         <span class="message-time">{ts.strftime("%H:%M")}</span>
                         {status_icon}
                     </div>
-                    {meta_html}
-                </div>
-            </div>
             """
+            
+            if msg.get("follow_up_needed"):
+                message_html += '<div class="message-meta">🔴 Follow-up needed</div>'
+            if msg.get("notes"):
+                message_html += f'<div class="message-meta">📝 {msg["notes"]}</div>'
+            
+            message_html += "</div></div>"
             st.markdown(message_html, unsafe_allow_html=True)
     
     st.markdown('</div>', unsafe_allow_html=True)
