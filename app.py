@@ -1333,7 +1333,10 @@ with col2:
             bubble_class = f"{direction} {sender_type}".strip()
             
             raw_text = msg["message"] or ""
-            display_text = raw_text
+            
+            # First, escape HTML special characters to prevent them from being rendered
+            import html
+            display_text = html.escape(raw_text)
             
             # Highlight search matches
             if search_query:
