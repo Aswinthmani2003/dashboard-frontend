@@ -161,6 +161,15 @@ def get_css(theme):
                 flex-direction: column;
                 height: calc(100vh - 120px);
                 background: #0b141a;
+                margin-top: -20px;
+            }
+            
+            .stSelectbox {
+                margin-bottom: 0 !important;
+            }
+            
+            [data-testid="stSelectbox"] {
+                margin-bottom: 0 !important;
             }
             
             .chat-header {
@@ -564,6 +573,15 @@ def get_css(theme):
                 flex-direction: column;
                 height: calc(100vh - 120px);
                 background: #efeae2;
+                margin-top: -20px;
+            }
+            
+            .stSelectbox {
+                margin-bottom: 0 !important;
+            }
+            
+            [data-testid="stSelectbox"] {
+                margin-bottom: 0 !important;
             }
             
             .chat-header {
@@ -1154,9 +1172,6 @@ if not selected:
 client_name = selected["client_name"] or phone
 initials = get_initials(client_name)
 
-# Chat container
-st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-
 # Chat header
 col_h1, col_h2 = st.columns([6, 1])
 
@@ -1418,5 +1433,3 @@ if update_msg:
             st.error(f"Error: {resp.text}")
     
     st.markdown('</div>', unsafe_allow_html=True)
-
-st.markdown('</div>', unsafe_allow_html=True)
