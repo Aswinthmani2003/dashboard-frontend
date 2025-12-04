@@ -1506,21 +1506,15 @@ with col1:
             </div>
             """
             
-            # Create invisible button for click functionality
-            button_col1, button_col2 = st.columns([0.01, 1])
-            with button_col2:
-                if st.button(f"select_{phone}", key=f"btn_{phone}", 
-                            use_container_width=True,
-                            type="primary" if is_selected else "secondary"):
-                    st.session_state.selected_phone = phone
-                    st.session_state.conv_offset = 0
-                    draft_key = f"new_msg_{phone}"
-                    if draft_key in st.session_state:
-                        del st.session_state[draft_key]
-                    st.rerun()
-            
-            # Overlay the contact card HTML on top
-            st.markdown(contact_html, unsafe_allow_html=True)
+            if st.button(f"{client_name}", key=phone, use_container_width=True, 
+                        type="primary" if is_selected else "secondary", 
+                        label_visibility="collapsed"):
+                st.session_state.selected_phone = phone
+                st.session_state.conv_offset = 0
+                draft_key = f"new_msg_{phone}"
+                if draft_key in st.session_state:
+                    del st.session_state[draft_key]
+                st.rerun()
     
     st.markdown('</div>', unsafe_allow_html=True)
 
