@@ -233,7 +233,7 @@ def get_css(theme):
             .messages-area {
                 flex: 1;
                 overflow-y: auto;
-                padding: 20px 8% 20px 8%;
+                padding: 12px 8% 20px 8%;
                 background-image: 
                     repeating-linear-gradient(
                         45deg,
@@ -636,7 +636,7 @@ def get_css(theme):
             .messages-area {
                 flex: 1;
                 overflow-y: auto;
-                padding: 20px 8% 20px 8%;
+                padding: 12px 8% 20px 8%;
                 background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAKklEQVQoU2NkYGD4z4AEpgIx2ERGRJB/DAwM/0GG/wcZCNIJM3QUFAIAnI0G8S3WzXQAAAAASUVORK5CYII=');
                 background-repeat: repeat;
                 position: relative;
