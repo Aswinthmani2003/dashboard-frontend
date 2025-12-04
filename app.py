@@ -1110,25 +1110,6 @@ def get_initials(name):
     return (parts[0][0] + parts[-1][0]).upper()
 
 
-def clean_message_text(raw_text):
-    """Clean message text by removing HTML tags and normalizing whitespace"""
-    if not raw_text:
-        return ""
-    
-    # Remove common HTML tags that might appear in messages
-    cleaned = raw_text.replace("</div>", "").replace("<div>", "")
-    cleaned = cleaned.replace("</span>", "").replace("<span>", "")
-    cleaned = cleaned.replace("<br>", "\n").replace("<br/>", "\n").replace("<br />", "\n")
-    
-    # Remove any other HTML tags using regex
-    cleaned = re.sub(r'<[^>]+>', '', cleaned)
-    
-    # Normalize whitespace
-    cleaned = cleaned.strip()
-    
-    return cleaned
-
-
 # Fetch and filter contacts
 contacts = fetch_contacts(st.session_state.filter_only_fu)
 if st.session_state.filter_phone:
@@ -1294,11 +1275,14 @@ else:
         # Message direction
         direction = "incoming" if msg["direction"] in ["user", "incoming"] else "outgoing"
         
-        # Clean the message text by removing HTML tags BEFORE any processing
         raw_text = msg["message"] or ""
-        raw_text = clean_message_text(raw_text)
         
-        # Now escape HTML to prevent any HTML rendering
+        # Remove unwanted HTML tags from the message content
+        raw_text = raw_text.replace("</div>", "").replace("<div>", "")
+        raw_text = raw_text.replace("</span>", "").replace("<span>", "")
+        raw_text = raw_text.strip()
+        
+        # Escape HTML first to prevent any HTML tags from rendering
         display_text = html.escape(raw_text)
         
         # Highlight search matches (after escaping)
