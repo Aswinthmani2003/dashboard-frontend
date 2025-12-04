@@ -35,9 +35,9 @@ def check_password():
 
 # Page config
 st.set_page_config(
-    page_title="WhatsApp Chat Inbox",
+    page_title="WhatsApp Business Dashboard",
     layout="wide",
-    initial_sidebar_state="collapsed"  # Start with sidebar collapsed
+    initial_sidebar_state="collapsed"
 )
 check_password()
 
@@ -80,9 +80,16 @@ def get_css(theme):
     if theme == "dark":
         return """
         <style>
+            /* Import WhatsApp font */
+            @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;500;600&display=swap');
+            
             /* Global dark theme */
+            * {
+                font-family: 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            }
+            
             .main {
-                background-color: #0d1418;
+                background-color: #0b141a;
                 padding: 0 !important;
             }
             
@@ -96,12 +103,12 @@ def get_css(theme):
             /* Header */
             .main-header {
                 background: #202c33;
-                padding: 15px 20px;
+                padding: 10px 16px;
                 display: flex;
                 align-items: center;
-                gap: 15px;
+                gap: 12px;
                 border-bottom: 1px solid #2a3942;
-                margin-bottom: 10px;
+                box-shadow: 0 1px 2px rgba(0,0,0,0.1);
                 position: sticky;
                 top: 0;
                 z-index: 999;
@@ -110,9 +117,10 @@ def get_css(theme):
             .main-header h1 {
                 color: #e9edef;
                 margin: 0;
-                font-size: 19px;
-                font-weight: 400;
+                font-size: 16px;
+                font-weight: 500;
                 flex: 1;
+                letter-spacing: 0.3px;
             }
             
             .logo-img {
@@ -122,66 +130,83 @@ def get_css(theme):
                 object-fit: cover;
             }
             
+            /* Top controls row */
+            .top-controls {
+                background: #0b141a;
+                padding: 8px 12px;
+                display: flex;
+                gap: 8px;
+            }
+            
             /* Filter section */
             .filter-container {
                 background-color: #111b21;
-                border: 1px solid #2a3942;
-                border-radius: 8px;
+                border-radius: 0;
                 padding: 0;
-                margin-bottom: 20px;
+                margin: 0 0 8px 0;
                 overflow: hidden;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.12);
             }
             
             .filter-header {
                 background-color: #202c33;
-                padding: 15px 20px;
+                padding: 12px 16px;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
                 cursor: pointer;
-                border-bottom: 1px solid #2a3942;
             }
             
             .filter-header h3 {
                 color: #e9edef;
                 margin: 0;
-                font-size: 16px;
+                font-size: 15px;
+                font-weight: 500;
                 display: flex;
                 align-items: center;
-                gap: 10px;
+                gap: 8px;
             }
             
             .filter-content {
-                padding: 20px;
+                padding: 16px;
+                background: #0b141a;
             }
             
-            .filter-row {
-                display: flex;
-                gap: 20px;
-                margin-bottom: 15px;
-                flex-wrap: wrap;
+            /* Contact sidebar */
+            .contacts-sidebar {
+                background: #111b21;
+                height: calc(100vh - 120px);
+                overflow-y: auto;
+                border-right: 1px solid #2a3942;
             }
             
-            .filter-group {
-                flex: 1;
-                min-width: 200px;
+            .contacts-header {
+                background: #202c33;
+                padding: 10px 16px;
+                border-bottom: 1px solid #2a3942;
+                position: sticky;
+                top: 0;
+                z-index: 10;
             }
             
-            .filter-group label {
-                color: #8696a0;
-                font-size: 14px;
-                margin-bottom: 5px;
-                display: block;
+            .contacts-header h3 {
+                color: #e9edef;
+                margin: 0;
+                font-size: 19px;
+                font-weight: 600;
             }
             
-            /* Contact list */
+            /* Contact card - WhatsApp style */
             .contact-card {
-                background-color: #111b21;
+                background-color: transparent;
                 padding: 12px 16px;
                 cursor: pointer;
-                border-bottom: 1px solid #2a3942;
-                transition: background-color 0.2s;
+                border-bottom: 1px solid #1f2c34;
+                transition: background-color 0.15s ease;
                 position: relative;
+                display: flex;
+                align-items: center;
+                gap: 12px;
             }
             
             .contact-card:hover {
@@ -192,52 +217,121 @@ def get_css(theme):
                 background-color: #2a3942;
             }
             
+            .contact-avatar {
+                width: 49px;
+                height: 49px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #00a884 0%, #00796b 100%);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #fff;
+                font-size: 20px;
+                font-weight: 500;
+                flex-shrink: 0;
+            }
+            
+            .contact-info {
+                flex: 1;
+                min-width: 0;
+                padding-right: 30px;
+            }
+            
             .contact-name {
                 color: #e9edef;
                 font-size: 16px;
                 font-weight: 400;
-                margin-bottom: 2px;
-            }
-            
-            .contact-phone {
-                color: #667781;
-                font-size: 13px;
                 margin-bottom: 3px;
-            }
-            
-            .contact-preview {
-                color: #8696a0;
-                font-size: 14px;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
             }
             
+            .contact-preview {
+                color: #8696a0;
+                font-size: 13px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                display: flex;
+                align-items: center;
+                gap: 4px;
+            }
+            
             .contact-time {
                 position: absolute;
-                top: 12px;
+                top: 14px;
                 right: 16px;
                 color: #8696a0;
                 font-size: 12px;
             }
             
-            .follow-up-dot {
-                color: #ff3b30;
-                font-weight: bold;
-                margin-right: 5px;
+            .follow-up-badge {
+                position: absolute;
+                top: 38px;
+                right: 16px;
+                background: #25d366;
+                color: #111b21;
+                font-size: 11px;
+                font-weight: 600;
+                padding: 2px 6px;
+                border-radius: 10px;
+                min-width: 20px;
+                text-align: center;
+            }
+            
+            .unread-count {
+                background: #25d366;
+                color: #111b21;
+                font-size: 12px;
+                font-weight: 600;
+                padding: 2px 6px;
+                border-radius: 10px;
+                min-width: 20px;
+                text-align: center;
+            }
+            
+            /* Chat area */
+            .chat-container {
+                display: flex;
+                flex-direction: column;
+                height: calc(100vh - 120px);
+                background: #0b141a;
             }
             
             /* Chat header */
             .chat-header {
                 background: #202c33;
-                padding: 10px 20px;
-                margin-bottom: 10px;
+                padding: 10px 16px;
                 border-bottom: 1px solid #2a3942;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                border: 1px solid #3b4a54;
-                border-radius: 8px;
+                flex-shrink: 0;
+            }
+            
+            .chat-header-left {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                flex: 1;
+            }
+            
+            .chat-avatar {
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #00a884 0%, #00796b 100%);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #fff;
+                font-size: 16px;
+                font-weight: 500;
+            }
+            
+            .chat-header-info {
+                flex: 1;
             }
             
             .chat-header-info h3 {
@@ -253,41 +347,85 @@ def get_css(theme):
                 font-size: 13px;
             }
             
-            .unread-badge {
-                color: #ff3b30;
-                font-size: 13px;
-                margin: 0 0 10px 20px;
+            .chat-header-actions {
+                display: flex;
+                gap: 20px;
+                align-items: center;
+            }
+            
+            .icon-btn {
+                color: #aebac1;
+                background: none;
+                border: none;
+                cursor: pointer;
+                font-size: 20px;
+                padding: 4px;
+                transition: color 0.15s ease;
+            }
+            
+            .icon-btn:hover {
+                color: #e9edef;
+            }
+            
+            /* Search bar */
+            .search-bar {
+                background: #202c33;
+                padding: 8px 16px;
+                border-bottom: 1px solid #2a3942;
+            }
+            
+            /* Messages area */
+            .messages-area {
+                flex: 1;
+                overflow-y: auto;
+                padding: 20px 8% 20px 8%;
+                background-image: 
+                    repeating-linear-gradient(
+                        45deg,
+                        transparent,
+                        transparent 10px,
+                        rgba(255,255,255,.02) 10px,
+                        rgba(255,255,255,.02) 20px
+                    );
+                position: relative;
             }
             
             /* Message container */
             .message-row {
                 display: flex;
-                margin-bottom: 12px;
+                margin-bottom: 8px;
                 clear: both;
+                animation: fadeIn 0.3s ease-in;
             }
             
-            .message-row.user {
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            
+            .message-row.incoming {
                 justify-content: flex-start;
             }
             
-            .message-row.bot {
+            .message-row.outgoing {
                 justify-content: flex-end;
             }
             
             /* Message bubble */
             .message-bubble {
                 max-width: 65%;
-                padding: 8px 12px 8px 12px;
-                border-radius: 8px;
+                padding: 6px 7px 8px 9px;
+                border-radius: 7.5px;
                 position: relative;
-                box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
+                box-shadow: 0 1px 0.5px rgba(11,20,26,0.13);
+                word-wrap: break-word;
             }
             
-            .message-bubble.user {
+            .message-bubble.incoming {
                 background-color: #202c33;
             }
             
-            .message-bubble.bot {
+            .message-bubble.outgoing {
                 background-color: #005c4b;
             }
             
@@ -295,86 +433,104 @@ def get_css(theme):
                 color: #e9edef;
                 font-size: 14.2px;
                 line-height: 19px;
-                margin-bottom: 4px;
+                margin: 0;
+                white-space: pre-wrap;
                 word-wrap: break-word;
+            }
+            
+            .message-footer {
+                display: flex;
+                align-items: center;
+                justify-content: flex-end;
+                gap: 4px;
+                margin-top: 4px;
+                font-size: 11px;
+                color: #8696a0;
             }
             
             .message-time {
                 color: #8696a0;
                 font-size: 11px;
-                text-align: right;
-                margin-top: 4px;
+            }
+            
+            .message-status {
+                color: #53bdeb;
+                font-size: 14px;
+                line-height: 1;
             }
             
             .message-meta {
                 color: #8696a0;
                 font-size: 11px;
                 margin-top: 4px;
-            }
-            
-            /* Highlight for search matches */
-            .highlight {
-                background-color: #86745f;
-                padding: 0 1px;
-                border-radius: 2px;
-            }
-            
-            /* Update section */
-            .update-section {
-                border: 1px solid #3b4a54;
-                border-radius: 8px;
-                padding: 15px;
-                margin-top: 20px;
-                background-color: #111b21;
-            }
-            
-            .update-section h3 {
-                color: #e9edef !important;
-                font-size: 16px !important;
-                margin-bottom: 15px !important;
-            }
-            
-            .send-section {
-                border: 1px solid #3b4a54;
-                border-radius: 8px;
-                padding: 15px;
-                margin-top: 20px;
-                margin-bottom: 20px;
-                background-color: #111b21;
-            }
-            
-            .send-section h3 {
-                color: #e9edef !important;
-                font-size: 16px !important;
-                margin-bottom: 15px !important;
-            }
-            
-            .chat-area {
-                border: 1px solid #3b4a54;
-                border-radius: 8px;
-                padding: 15px;
-                margin-bottom: 20px;
-                background-color: #0d1418;
-                min-height: 1px;
-            }
-            
-            .pagination-section {
-                border: 1px solid #3b4a54;
-                border-radius: 8px;
-                padding: 15px;
-                margin-bottom: 20px;
-                background-color: #111b21;
                 display: flex;
                 align-items: center;
-                justify-content: space-between;
+                gap: 4px;
+            }
+            
+            /* Message input area */
+            .message-input-area {
+                background: #202c33;
+                padding: 8px 16px;
+                border-top: 1px solid #2a3942;
+                flex-shrink: 0;
+            }
+            
+            .input-container {
+                display: flex;
+                align-items: flex-end;
+                gap: 8px;
+                background: #2a3942;
+                border-radius: 8px;
+                padding: 8px 12px;
+            }
+            
+            /* Date divider */
+            .date-divider {
+                text-align: center;
+                margin: 20px 0;
+                position: relative;
+            }
+            
+            .date-divider span {
+                background: #202c33;
+                color: #8696a0;
+                padding: 5px 12px;
+                border-radius: 7.5px;
+                font-size: 12.5px;
+                box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            }
+            
+            /* Pagination */
+            .pagination-section {
+                background: #202c33;
+                padding: 12px 16px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 12px;
+                border-top: 1px solid #2a3942;
             }
             
             .pagination-info {
                 color: #8696a0;
-                font-size: 14px;
+                font-size: 13px;
                 margin: 0;
-                text-align: center;
-                flex: 1;
+            }
+            
+            /* Update section */
+            .update-section {
+                background: #111b21;
+                border-top: 1px solid #2a3942;
+                padding: 16px;
+                margin-top: auto;
+            }
+            
+            .update-section h3 {
+                color: #e9edef !important;
+                font-size: 15px !important;
+                font-weight: 500 !important;
+                margin-bottom: 12px !important;
             }
             
             /* Buttons */
@@ -383,21 +539,13 @@ def get_css(theme):
                 color: white !important;
                 border: none !important;
                 font-weight: 500 !important;
+                border-radius: 8px !important;
+                padding: 8px 16px !important;
+                transition: background-color 0.15s ease !important;
             }
             
             .stButton > button:hover {
                 background-color: #06cf9c !important;
-            }
-            
-            .delete-btn {
-                background-color: #dc3545 !important;
-                padding: 4px 8px !important;
-                font-size: 11px !important;
-                border-radius: 4px !important;
-                color: white !important;
-                border: none !important;
-                cursor: pointer;
-                margin-top: 4px;
             }
             
             /* Input fields */
@@ -405,21 +553,31 @@ def get_css(theme):
                 background-color: #2a3942 !important;
                 color: #e9edef !important;
                 border: 1px solid #3b4a54 !important;
+                border-radius: 8px !important;
+                font-size: 14px !important;
+            }
+            
+            .stTextInput input:focus, .stTextArea textarea:focus {
+                border-color: #00a884 !important;
+                box-shadow: 0 0 0 1px #00a884 !important;
             }
             
             /* Checkbox */
             [data-testid="stCheckbox"] label {
                 color: #e9edef !important;
+                font-size: 14px !important;
             }
             
             /* Selectbox */
             .stSelectbox label {
                 color: #e9edef !important;
+                font-size: 14px !important;
             }
             
             /* Radio buttons */
             .stRadio label {
                 color: #e9edef !important;
+                font-size: 14px !important;
             }
             
             /* Date and time inputs */
@@ -427,6 +585,7 @@ def get_css(theme):
                 background-color: #2a3942 !important;
                 color: #e9edef !important;
                 border: 1px solid #3b4a54 !important;
+                border-radius: 8px !important;
             }
             
             /* Scrollbar */
@@ -436,57 +595,71 @@ def get_css(theme):
             }
             
             ::-webkit-scrollbar-track {
-                background: #0d1418;
+                background: #0b141a;
             }
             
             ::-webkit-scrollbar-thumb {
-                background: #2a3942;
+                background: #374045;
                 border-radius: 3px;
             }
             
             ::-webkit-scrollbar-thumb:hover {
-                background: #3b4a54;
+                background: #4a5458;
             }
             
-            /* Hide streamlit menu/footer and header */
+            /* Hide streamlit elements */
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
             header {visibility: hidden;}
             
-            /* Override streamlit's default padding for header */
-            .main .block-container {
-                padding-top: 0rem !important;
+            /* Highlight for search */
+            .highlight {
+                background-color: #5c5c5c;
+                padding: 0 2px;
+                border-radius: 2px;
             }
             
-            /* Header buttons container */
-            .header-buttons {
+            /* Empty state */
+            .empty-state {
                 display: flex;
+                flex-direction: column;
                 align-items: center;
-                gap: 10px;
+                justify-content: center;
+                height: 100%;
+                color: #8696a0;
+                text-align: center;
+                padding: 40px;
             }
             
-            /* Filter action buttons */
-            .filter-actions {
-                display: flex;
-                gap: 10px;
-                margin-top: 20px;
-                justify-content: flex-end;
+            .empty-state-icon {
+                font-size: 64px;
+                margin-bottom: 16px;
+                opacity: 0.5;
             }
             
-            /* Filter toggle and theme buttons row */
-            .top-buttons-row {
-                display: flex;
-                gap: 10px;
-                margin-bottom: 15px;
+            .empty-state-text {
+                font-size: 20px;
+                margin-bottom: 8px;
+            }
+            
+            .empty-state-subtext {
+                font-size: 14px;
             }
         </style>
         """
     else:  # light theme
         return """
         <style>
+            /* Import WhatsApp font */
+            @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;500;600&display=swap');
+            
             /* Global light theme */
+            * {
+                font-family: 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            }
+            
             .main {
-                background-color: #ffffff;
+                background-color: #f0f2f5;
                 padding: 0 !important;
             }
             
@@ -499,24 +672,25 @@ def get_css(theme):
             
             /* Header */
             .main-header {
-                background: #f0f2f5;
-                padding: 15px 20px;
+                background: #ededed;
+                padding: 10px 16px;
                 display: flex;
                 align-items: center;
-                gap: 15px;
-                border-bottom: 1px solid #dddfe2;
-                margin-bottom: 10px;
+                gap: 12px;
+                border-bottom: 1px solid #d1d7db;
+                box-shadow: 0 1px 2px rgba(0,0,0,0.05);
                 position: sticky;
                 top: 0;
                 z-index: 999;
             }
             
             .main-header h1 {
-                color: #1c1e21;
+                color: #111b21;
                 margin: 0;
-                font-size: 19px;
-                font-weight: 400;
+                font-size: 16px;
+                font-weight: 500;
                 flex: 1;
+                letter-spacing: 0.3px;
             }
             
             .logo-img {
@@ -526,318 +700,456 @@ def get_css(theme):
                 object-fit: cover;
             }
             
-            /* Header buttons container */
-            .header-buttons {
+            /* Top controls row */
+            .top-controls {
+                background: #f0f2f5;
+                padding: 8px 12px;
                 display: flex;
-                align-items: center;
-                gap: 10px;
+                gap: 8px;
             }
             
             /* Filter section */
             .filter-container {
-                background-color: #ffffff;
-                border: 1px solid #dddfe2;
-                border-radius: 8px;
+                background-color: #fff;
+                border-radius: 0;
                 padding: 0;
-                margin-bottom: 20px;
+                margin: 0 0 8px 0;
                 overflow: hidden;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.08);
             }
             
             .filter-header {
-                background-color: #f0f2f5;
-                padding: 15px 20px;
+                background-color: #ededed;
+                padding: 12px 16px;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
                 cursor: pointer;
-                border-bottom: 1px solid #dddfe2;
             }
             
             .filter-header h3 {
-                color: #1c1e21;
+                color: #111b21;
                 margin: 0;
-                font-size: 16px;
+                font-size: 15px;
+                font-weight: 500;
                 display: flex;
                 align-items: center;
-                gap: 10px;
+                gap: 8px;
             }
             
             .filter-content {
-                padding: 20px;
+                padding: 16px;
+                background: #fff;
             }
             
-            .filter-row {
-                display: flex;
-                gap: 20px;
-                margin-bottom: 15px;
-                flex-wrap: wrap;
+            /* Contact sidebar */
+            .contacts-sidebar {
+                background: #fff;
+                height: calc(100vh - 120px);
+                overflow-y: auto;
+                border-right: 1px solid #d1d7db;
             }
             
-            .filter-group {
-                flex: 1;
-                min-width: 200px;
+            .contacts-header {
+                background: #ededed;
+                padding: 10px 16px;
+                border-bottom: 1px solid #d1d7db;
+                position: sticky;
+                top: 0;
+                z-index: 10;
             }
             
-            .filter-group label {
-                color: #65676b;
-                font-size: 14px;
-                margin-bottom: 5px;
-                display: block;
+            .contacts-header h3 {
+                color: #111b21;
+                margin: 0;
+                font-size: 19px;
+                font-weight: 600;
             }
             
-            /* Contact list */
+            /* Contact card */
             .contact-card {
-                background-color: #ffffff;
+                background-color: transparent;
                 padding: 12px 16px;
                 cursor: pointer;
-                border-bottom: 1px solid #dddfe2;
-                transition: background-color 0.2s;
+                border-bottom: 1px solid #e9edef;
+                transition: background-color 0.15s ease;
                 position: relative;
+                display: flex;
+                align-items: center;
+                gap: 12px;
             }
             
             .contact-card:hover {
-                background-color: #f0f2f5;
+                background-color: #f5f6f6;
             }
             
             .contact-card.selected {
-                background-color: #e4e6eb;
+                background-color: #e9edef;
+            }
+            
+            .contact-avatar {
+                width: 49px;
+                height: 49px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #fff;
+                font-size: 20px;
+                font-weight: 500;
+                flex-shrink: 0;
+            }
+            
+            .contact-info {
+                flex: 1;
+                min-width: 0;
+                padding-right: 30px;
             }
             
             .contact-name {
-                color: #1c1e21;
+                color: #111b21;
                 font-size: 16px;
                 font-weight: 400;
-                margin-bottom: 2px;
-            }
-            
-            .contact-phone {
-                color: #65676b;
-                font-size: 13px;
                 margin-bottom: 3px;
-            }
-            
-            .contact-preview {
-                color: #65676b;
-                font-size: 14px;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
             }
             
+            .contact-preview {
+                color: #667781;
+                font-size: 13px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                display: flex;
+                align-items: center;
+                gap: 4px;
+            }
+            
             .contact-time {
                 position: absolute;
-                top: 12px;
+                top: 14px;
                 right: 16px;
-                color: #65676b;
+                color: #667781;
                 font-size: 12px;
             }
             
-            .follow-up-dot {
-                color: #ff3b30;
-                font-weight: bold;
-                margin-right: 5px;
+            .follow-up-badge {
+                position: absolute;
+                top: 38px;
+                right: 16px;
+                background: #25d366;
+                color: #fff;
+                font-size: 11px;
+                font-weight: 600;
+                padding: 2px 6px;
+                border-radius: 10px;
+                min-width: 20px;
+                text-align: center;
+            }
+            
+            .unread-count {
+                background: #25d366;
+                color: #fff;
+                font-size: 12px;
+                font-weight: 600;
+                padding: 2px 6px;
+                border-radius: 10px;
+                min-width: 20px;
+                text-align: center;
+            }
+            
+            /* Chat area */
+            .chat-container {
+                display: flex;
+                flex-direction: column;
+                height: calc(100vh - 120px);
+                background: #efeae2;
             }
             
             /* Chat header */
             .chat-header {
-                background: #f0f2f5;
-                padding: 10px 20px;
-                margin-bottom: 10px;
-                border-bottom: 1px solid #dddfe2;
+                background: #ededed;
+                padding: 10px 16px;
+                border-bottom: 1px solid #d1d7db;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                border: 1px solid #ccd0d5;
-                border-radius: 8px;
+                flex-shrink: 0;
+            }
+            
+            .chat-header-left {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                flex: 1;
+            }
+            
+            .chat-avatar {
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #fff;
+                font-size: 16px;
+                font-weight: 500;
+            }
+            
+            .chat-header-info {
+                flex: 1;
             }
             
             .chat-header-info h3 {
-                color: #1c1e21;
+                color: #111b21;
                 margin: 0;
                 font-size: 16px;
                 font-weight: 400;
             }
             
             .chat-header-info p {
-                color: #65676b;
+                color: #667781;
                 margin: 0;
                 font-size: 13px;
             }
             
-            .unread-badge {
-                color: #ff3b30;
-                font-size: 13px;
-                margin: 0 0 10px 20px;
+            .chat-header-actions {
+                display: flex;
+                gap: 20px;
+                align-items: center;
+            }
+            
+            .icon-btn {
+                color: #54656f;
+                background: none;
+                border: none;
+                cursor: pointer;
+                font-size: 20px;
+                padding: 4px;
+                transition: color 0.15s ease;
+            }
+            
+            .icon-btn:hover {
+                color: #111b21;
+            }
+            
+            /* Search bar */
+            .search-bar {
+                background: #ededed;
+                padding: 8px 16px;
+                border-bottom: 1px solid #d1d7db;
+            }
+            
+            /* Messages area */
+            .messages-area {
+                flex: 1;
+                overflow-y: auto;
+                padding: 20px 8% 20px 8%;
+                background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAKklEQVQoU2NkYGD4z4AEpgIx2ERGRJB/DAwM/0GG/wcZCNIJM3QUFAIAnI0G8S3WzXQAAAAASUVORK5CYII=');
+                background-repeat: repeat;
+                position: relative;
             }
             
             /* Message container */
             .message-row {
                 display: flex;
-                margin-bottom: 12px;
+                margin-bottom: 8px;
                 clear: both;
+                animation: fadeIn 0.3s ease-in;
             }
             
-            .message-row.user {
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            
+            .message-row.incoming {
                 justify-content: flex-start;
             }
             
-            .message-row.bot {
+            .message-row.outgoing {
                 justify-content: flex-end;
             }
             
             /* Message bubble */
             .message-bubble {
                 max-width: 65%;
-                padding: 8px 12px 8px 12px;
-                border-radius: 8px;
+                padding: 6px 7px 8px 9px;
+                border-radius: 7.5px;
                 position: relative;
                 box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
-            }
-            
-            .message-bubble.user {
-                background-color: #f0f2f5;
-            }
-            
-            .message-bubble.bot {
-                background-color: #0084ff;
-            }
-            
-            .message-text {
-                color: #1c1e21;
-                font-size: 14.2px;
-                line-height: 19px;
-                margin-bottom: 4px;
                 word-wrap: break-word;
             }
             
-            .message-time {
-                color: #65676b;
-                font-size: 11px;
-                text-align: right;
+            .message-bubble.incoming {
+                background-color: #ffffff;
+            }
+            
+            .message-bubble.outgoing {
+                background-color: #d9fdd3;
+            }
+            
+            .message-text {
+                color: #111b21;
+                font-size: 14.2px;
+                line-height: 19px;
+                margin: 0;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+            }
+            
+            .message-footer {
+                display: flex;
+                align-items: center;
+                justify-content: flex-end;
+                gap: 4px;
                 margin-top: 4px;
+                font-size: 11px;
+                color: #667781;
+            }
+            
+            .message-time {
+                color: #667781;
+                font-size: 11px;
+            }
+            
+            .message-status {
+                color: #53bdeb;
+                font-size: 14px;
+                line-height: 1;
             }
             
             .message-meta {
-                color: #65676b;
+                color: #667781;
                 font-size: 11px;
                 margin-top: 4px;
+                display: flex;
+                align-items: center;
+                gap: 4px;
             }
             
-            /* Highlight for search matches */
-            .highlight {
-                background-color: #ffd700;
-                padding: 0 1px;
-                border-radius: 2px;
+            /* Message input area */
+            .message-input-area {
+                background: #ededed;
+                padding: 8px 16px;
+                border-top: 1px solid #d1d7db;
+                flex-shrink: 0;
+            }
+            
+            .input-container {
+                display: flex;
+                align-items: flex-end;
+                gap: 8px;
+                background: #ffffff;
+                border-radius: 8px;
+                padding: 8px 12px;
+            }
+            
+            /* Date divider */
+            .date-divider {
+                text-align: center;
+                margin: 20px 0;
+                position: relative;
+            }
+            
+            .date-divider span {
+                background: #ffffff;
+                color: #54656f;
+                padding: 5px 12px;
+                border-radius: 7.5px;
+                font-size: 12.5px;
+                box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            }
+            
+            /* Pagination */
+            .pagination-section {
+                background: #ededed;
+                padding: 12px 16px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 12px;
+                border-top: 1px solid #d1d7db;
+            }
+            
+            .pagination-info {
+                color: #667781;
+                font-size: 13px;
+                margin: 0;
             }
             
             /* Update section */
             .update-section {
-                border: 1px solid #ccd0d5;
-                border-radius: 8px;
-                padding: 15px;
-                margin-top: 20px;
-                background-color: #ffffff;
+                background: #fff;
+                border-top: 1px solid #d1d7db;
+                padding: 16px;
+                margin-top: auto;
             }
             
             .update-section h3 {
-                color: #1c1e21 !important;
-                font-size: 16px !important;
-                margin-bottom: 15px !important;
-            }
-            
-            .send-section {
-                border: 1px solid #ccd0d5;
-                border-radius: 8px;
-                padding: 15px;
-                margin-top: 20px;
-                margin-bottom: 20px;
-                background-color: #ffffff;
-            }
-            
-            .send-section h3 {
-                color: #1c1e21 !important;
-                font-size: 16px !important;
-                margin-bottom: 15px !important;
-            }
-            
-            .chat-area {
-                border: 1px solid #ccd0d5;
-                border-radius: 8px;
-                padding: 15px;
-                margin-bottom: 20px;
-                background-color: #ffffff;
-                min-height: 1px;
-            }
-            
-            .pagination-section {
-                border: 1px solid #ccd0d5;
-                border-radius: 8px;
-                padding: 15px;
-                margin-bottom: 20px;
-                background-color: #ffffff;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-            }
-            
-            .pagination-info {
-                color: #65676b;
-                font-size: 14px;
-                margin: 0;
-                text-align: center;
-                flex: 1;
+                color: #111b21 !important;
+                font-size: 15px !important;
+                font-weight: 500 !important;
+                margin-bottom: 12px !important;
             }
             
             /* Buttons */
             .stButton > button {
-                background-color: #0084ff !important;
+                background-color: #25d366 !important;
                 color: white !important;
                 border: none !important;
                 font-weight: 500 !important;
+                border-radius: 8px !important;
+                padding: 8px 16px !important;
+                transition: background-color 0.15s ease !important;
             }
             
             .stButton > button:hover {
-                background-color: #0073e6 !important;
-            }
-            
-            .delete-btn {
-                background-color: #dc3545 !important;
-                padding: 4px 8px !important;
-                font-size: 11px !important;
-                border-radius: 4px !important;
-                color: white !important;
-                border: none !important;
-                cursor: pointer;
-                margin-top: 4px;
+                background-color: #20bd5a !important;
             }
             
             /* Input fields */
             .stTextInput input, .stTextArea textarea {
                 background-color: #ffffff !important;
-                color: #1c1e21 !important;
-                border: 1px solid #ccd0d5 !important;
+                color: #111b21 !important;
+                border: 1px solid #d1d7db !important;
+                border-radius: 8px !important;
+                font-size: 14px !important;
+            }
+            
+            .stTextInput input:focus, .stTextArea textarea:focus {
+                border-color: #25d366 !important;
+                box-shadow: 0 0 0 1px #25d366 !important;
             }
             
             /* Checkbox */
             [data-testid="stCheckbox"] label {
-                color: #1c1e21 !important;
+                color: #111b21 !important;
+                font-size: 14px !important;
             }
             
             /* Selectbox */
             .stSelectbox label {
-                color: #1c1e21 !important;
+                color: #111b21 !important;
+                font-size: 14px !important;
             }
             
             /* Radio buttons */
             .stRadio label {
-                color: #1c1e21 !important;
+                color: #111b21 !important;
+                font-size: 14px !important;
             }
             
             /* Date and time inputs */
             .stDateInput input, .stTimeInput input {
                 background-color: #ffffff !important;
-                color: #1c1e21 !important;
-                border: 1px solid #ccd0d5 !important;
+                color: #111b21 !important;
+                border: 1px solid #d1d7db !important;
+                border-radius: 8px !important;
             }
             
             /* Scrollbar */
@@ -851,44 +1163,51 @@ def get_css(theme):
             }
             
             ::-webkit-scrollbar-thumb {
-                background: #aeb5bb;
+                background: #bfc5c9;
                 border-radius: 3px;
             }
             
             ::-webkit-scrollbar-thumb:hover {
-                background: #ccd0d5;
+                background: #a8aeb3;
             }
             
-            /* Hide streamlit menu/footer and header */
+            /* Hide streamlit elements */
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
             header {visibility: hidden;}
             
-            /* Override streamlit's default padding for header */
-            .main .block-container {
-                padding-top: 0rem !important;
+            /* Highlight for search */
+            .highlight {
+                background-color: #ffd700;
+                padding: 0 2px;
+                border-radius: 2px;
             }
             
-            /* Header buttons container */
-            .header-buttons {
+            /* Empty state */
+            .empty-state {
                 display: flex;
+                flex-direction: column;
                 align-items: center;
-                gap: 10px;
+                justify-content: center;
+                height: 100%;
+                color: #667781;
+                text-align: center;
+                padding: 40px;
             }
             
-            /* Filter action buttons */
-            .filter-actions {
-                display: flex;
-                gap: 10px;
-                margin-top: 20px;
-                justify-content: flex-end;
+            .empty-state-icon {
+                font-size: 64px;
+                margin-bottom: 16px;
+                opacity: 0.5;
             }
             
-            /* Filter toggle and theme buttons row */
-            .top-buttons-row {
-                display: flex;
-                gap: 10px;
-                margin-bottom: 15px;
+            .empty-state-text {
+                font-size: 20px;
+                margin-bottom: 8px;
+            }
+            
+            .empty-state-subtext {
+                font-size: 14px;
             }
         </style>
         """
@@ -901,29 +1220,26 @@ logo_base64 = get_base64_logo()
 if logo_base64:
     logo_html = f'<img src="data:image/png;base64,{logo_base64}" class="logo-img">'
 else:
-    # Fallback to external URL if Logo.png not found
     logo_url = "https://drive.google.com/uc?export=view&id=1NSTzTZ_gusa-c4Sc5dZelth-Djft0Zca"
     logo_html = f'<img src="{logo_url}" class="logo-img" onerror="this.style.display=\'none\'">'
 
 st.markdown(f"""
 <div class="main-header">
     {logo_html}
-    <h1>WhatsApp Chat Inbox – Amirtharaj Investment</h1>
+    <h1>WhatsApp Business – Amirtharaj Investment</h1>
 </div>
 """, unsafe_allow_html=True)
 
-# Create a row for filter toggle and theme buttons
+# Top controls
 col1, col2 = st.columns([1, 1])
 
 with col1:
-    # Filter toggle button
     filter_icon = "▼" if st.session_state.show_filters else "▶"
     if st.button(f"{filter_icon} Filters", key="toggle_filters", use_container_width=True):
         st.session_state.show_filters = not st.session_state.show_filters
         st.rerun()
 
 with col2:
-    # Theme toggle button
     if st.session_state.theme == "dark":
         if st.button("☀️ Light Mode", key="theme_toggle", use_container_width=True):
             st.session_state.theme = "light"
@@ -933,16 +1249,15 @@ with col2:
             st.session_state.theme = "dark"
             st.rerun()
 
-# Filter section (dropdown)
+# Filter section
 if st.session_state.show_filters:
     st.markdown('<div class="filter-container">', unsafe_allow_html=True)
     st.markdown('<div class="filter-header">', unsafe_allow_html=True)
-    st.markdown('<h3><span>🔍</span> Filter Options</h3>', unsafe_allow_html=True)
+    st.markdown('<h3>🔍 Filter Options</h3>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
     
     st.markdown('<div class="filter-content">', unsafe_allow_html=True)
     
-    # Filter row 1: Phone and Name
     col1, col2 = st.columns(2)
     with col1:
         st.session_state.filter_phone = st.text_input(
@@ -960,7 +1275,6 @@ if st.session_state.show_filters:
             key="filter_name_input"
         )
     
-    # Filter row 2: Date
     st.session_state.filter_by_date = st.checkbox(
         "📅 Enable date filter",
         value=st.session_state.filter_by_date,
@@ -974,7 +1288,6 @@ if st.session_state.show_filters:
             key="filter_date_input"
         )
     
-    # Filter row 3: Time Range
     st.session_state.filter_by_time = st.checkbox(
         "🕐 Enable time filter",
         value=st.session_state.filter_by_time,
@@ -996,21 +1309,17 @@ if st.session_state.show_filters:
                 key="filter_time_to_input"
             )
     
-    # Filter row 4: Follow-up
     st.session_state.filter_only_fu = st.checkbox(
         "🔴 Show only follow-up clients",
         value=st.session_state.filter_only_fu,
         key="filter_only_fu_check"
     )
     
-    # Apply Filters button
-    st.markdown('<div class="filter-actions">', unsafe_allow_html=True)
     if st.button("Apply Filters", use_container_width=True, type="primary"):
         st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)  # Close filter-actions
     
-    st.markdown('</div>', unsafe_allow_html=True)  # Close filter-content
-    st.markdown('</div>', unsafe_allow_html=True)  # Close filter-container
+    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # Helper functions
 def fetch_contacts(only_follow_up: bool):
@@ -1071,15 +1380,14 @@ def filter_messages(messages, date_filter, time_from, time_to):
 def send_whatsapp_message(phone: str, message_text: str,
                           msg_type: str = "text",
                           template_name: str | None = None) -> bool:
-    """Send message to Make.com webhook which will handle WhatsApp API."""
     if not MAKE_WEBHOOK_URL:
-        st.error("Make webhook URL not configured (set 'make_webhook_url' in Streamlit secrets).")
+        st.error("Make webhook URL not configured.")
         return False
 
     payload = {
         "phone": phone,
         "message": message_text,
-        "type": msg_type,  # 'text' or 'template'
+        "type": msg_type,
     }
     if msg_type == "template" and template_name:
         payload["template_name"] = template_name
@@ -1087,7 +1395,6 @@ def send_whatsapp_message(phone: str, message_text: str,
     try:
         r = requests.post(MAKE_WEBHOOK_URL, json=payload, timeout=15)
         if r.status_code in (200, 201, 202):
-            # Log the sent message to the backend database
             log_sent_message(phone, message_text, msg_type)
             return True
         else:
@@ -1099,7 +1406,6 @@ def send_whatsapp_message(phone: str, message_text: str,
 
 
 def log_sent_message(phone: str, message: str, msg_type: str = "text"):
-    """Log sent message to backend database"""
     try:
         payload = {
             "phone": phone,
@@ -1115,62 +1421,102 @@ def log_sent_message(phone: str, message: str, msg_type: str = "text"):
         response.raise_for_status()
         return True
     except Exception as e:
-        # Silently fail - don't disrupt the UI if logging fails
-        st.warning(f"Message sent but not logged in database: {e}")
+        st.warning(f"Message sent but not logged: {e}")
         return False
 
 
-# Fetch and filter contacts using session state values
+def get_initials(name):
+    """Get initials from name for avatar"""
+    if not name or name == "Unknown":
+        return "?"
+    parts = name.strip().split()
+    if len(parts) == 1:
+        return parts[0][0].upper()
+    return (parts[0][0] + parts[-1][0]).upper()
+
+
+# Fetch and filter contacts
 contacts = fetch_contacts(st.session_state.filter_only_fu)
 if st.session_state.filter_phone:
     contacts = [c for c in contacts if st.session_state.filter_phone.lower() in c["phone"].lower()]
 if st.session_state.filter_name:
     contacts = [c for c in contacts if c.get("client_name") and st.session_state.filter_name.lower() in c["client_name"].lower()]
 
-if not contacts:
-    st.info("🔍 No contacts found")
-    st.stop()
-
-# Initialize session state for selected phone
+# Initialize session state
 if "selected_phone" not in st.session_state:
     st.session_state.selected_phone = contacts[0]["phone"] if contacts else ""
 
 if "conv_offset" not in st.session_state:
     st.session_state.conv_offset = 0
 
-if "last_message_count" not in st.session_state:
-    st.session_state.last_message_count = {}
-
 if "auto_refresh" not in st.session_state:
-    st.session_state.auto_refresh = True
+    st.session_state.auto_refresh = False
 
-CONV_LIMIT = 20  # recommended
+CONV_LIMIT = 50
 
-# Layout
+# Layout: Contacts | Chat
 col1, col2 = st.columns([1, 2.5])
 
 with col1:
-    st.markdown("### 💬 Contacts")
-    for c in contacts:
-        client_name = c["client_name"] or "Unknown"
-        phone = c["phone"]
-        is_selected = st.session_state.selected_phone == phone
-        fu_indicator = "🔴 " if c.get("follow_up_open") else ""
-        
-        if st.button(
-            f"{fu_indicator}{client_name}",
-            key=phone,
-            use_container_width=True,
-            type="primary" if is_selected else "secondary"
-        ):
-            # When switching contact, reset pagination and draft
-            st.session_state.selected_phone = phone
-            st.session_state.conv_offset = 0
-            draft_key = f"new_msg_{phone}"
-            if draft_key in st.session_state:
-                # Delete the key instead of setting to empty string
-                del st.session_state[draft_key]
-            st.rerun()
+    st.markdown('<div class="contacts-sidebar">', unsafe_allow_html=True)
+    st.markdown('<div class="contacts-header"><h3>Chats</h3></div>', unsafe_allow_html=True)
+    
+    if not contacts:
+        st.markdown("""
+        <div class="empty-state">
+            <div class="empty-state-icon">💬</div>
+            <div class="empty-state-text">No contacts found</div>
+            <div class="empty-state-subtext">Try adjusting your filters</div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        for c in contacts:
+            client_name = c["client_name"] or "Unknown"
+            phone = c["phone"]
+            is_selected = st.session_state.selected_phone == phone
+            initials = get_initials(client_name)
+            
+            # Get last message preview
+            last_msg = c.get("last_message", "")[:50] + "..." if len(c.get("last_message", "")) > 50 else c.get("last_message", "")
+            
+            # Format time
+            last_time = ""
+            if c.get("last_message_time"):
+                try:
+                    dt = datetime.fromisoformat(c["last_message_time"])
+                    if dt.date() == date.today():
+                        last_time = dt.strftime("%H:%M")
+                    else:
+                        last_time = dt.strftime("%d/%m/%y")
+                except:
+                    pass
+            
+            selected_class = "selected" if is_selected else ""
+            fu_badge = f'<div class="follow-up-badge">FU</div>' if c.get("follow_up_open") else ""
+            
+            contact_html = f"""
+            <div class="contact-card {selected_class}" onclick="return true;">
+                <div class="contact-avatar">{initials}</div>
+                <div class="contact-info">
+                    <div class="contact-name">{client_name}</div>
+                    <div class="contact-preview">{last_msg or "No messages"}</div>
+                </div>
+                <div class="contact-time">{last_time}</div>
+                {fu_badge}
+            </div>
+            """
+            
+            if st.button(f"{client_name}", key=phone, use_container_width=True, 
+                        type="primary" if is_selected else "secondary", 
+                        label_visibility="collapsed"):
+                st.session_state.selected_phone = phone
+                st.session_state.conv_offset = 0
+                draft_key = f"new_msg_{phone}"
+                if draft_key in st.session_state:
+                    del st.session_state[draft_key]
+                st.rerun()
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
 with col2:
     phone = st.session_state.selected_phone
@@ -1181,20 +1527,56 @@ with col2:
     selected = next((c for c in contacts if c["phone"] == phone), None) if phone else None
     
     if not selected:
-        st.info("📭 Select a contact to view messages")
+        st.markdown("""
+        <div class="empty-state" style="height: calc(100vh - 120px);">
+            <div class="empty-state-icon">💭</div>
+            <div class="empty-state-text">Select a chat to start messaging</div>
+            <div class="empty-state-subtext">Choose a contact from the list</div>
+        </div>
+        """, unsafe_allow_html=True)
         st.stop()
     
     client_name = selected["client_name"] or phone
+    initials = get_initials(client_name)
     
-    # Auto-refresh toggle and logic
-    col_toggle1, col_toggle2 = st.columns([3, 1])
-    with col_toggle1:
-        pass
-    with col_toggle2:
-        auto_refresh = st.checkbox("🔄 Auto-refresh", value=st.session_state.auto_refresh, key="auto_refresh_toggle")
+    # Chat container
+    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+    
+    # Chat header
+    col_h1, col_h2, col_h3 = st.columns([0.1, 5, 1])
+    
+    with col_h2:
+        st.markdown(f"""
+        <div class="chat-header">
+            <div class="chat-header-left">
+                <div class="chat-avatar">{initials}</div>
+                <div class="chat-header-info">
+                    <h3>{client_name}</h3>
+                    <p>{phone}</p>
+                </div>
+            </div>
+            <div class="chat-header-actions">
+                <button class="icon-btn">🔍</button>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col_h3:
+        auto_refresh = st.checkbox("🔄", value=st.session_state.auto_refresh, key="auto_refresh_toggle", 
+                                   help="Auto-refresh messages")
         st.session_state.auto_refresh = auto_refresh
+        
+        if st.button("🗑️", key="del_all", help="Delete conversation"):
+            if st.session_state.get('confirm_del'):
+                if delete_conversation(phone):
+                    st.success("Deleted!")
+                    st.session_state.pop('confirm_del', None)
+                    st.rerun()
+            else:
+                st.session_state.confirm_del = True
+                st.warning("Click again to confirm")
     
-    # Auto-refresh script - checks for new messages every 5 seconds
+    # Auto-refresh script
     if st.session_state.auto_refresh:
         st.markdown("""
         <script>
@@ -1204,61 +1586,61 @@ with col2:
         </script>
         """, unsafe_allow_html=True)
     
-    # Chat header + delete
-    col_h1, col_h2 = st.columns([6, 1])
-    with col_h1:
-        st.markdown(f"""
-        <div class="chat-header">
-            <div class="chat-header-info">
-                <h3>{client_name}</h3>
-                <p>{phone}</p>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    with col_h2:
-        if st.button("🗑️ Delete All", key="del_all"):
-            if st.session_state.get('confirm_del'):
-                if delete_conversation(phone):
-                    st.success("Deleted!")
-                    st.session_state.pop('confirm_del', None)
-                    st.rerun()
-            else:
-                st.session_state.confirm_del = True
-                st.warning("Click again")
-    
-    # Search inside conversation
+    # Search bar
     search_query = st.text_input(
-        "Search in this chat",
-        placeholder="Type to search messages...",
-        key="search_conv"
+        "Search",
+        placeholder="Search messages...",
+        key="search_conv",
+        label_visibility="collapsed"
     )
     
-    # Fetch messages with pagination
+    # Fetch messages
     conv = fetch_conversation(phone, limit=CONV_LIMIT, offset=st.session_state.conv_offset)
     
-    # Apply date and time filters to messages
+    # Apply filters
     date_filter = st.session_state.filter_date if st.session_state.filter_by_date else None
     time_from = st.session_state.filter_time_from if st.session_state.filter_by_time else None
     time_to = st.session_state.filter_time_to if st.session_state.filter_by_time else None
     conv = filter_messages(conv, date_filter, time_from, time_to)
     
-    # Sort messages by timestamp (oldest first) so new messages appear at bottom
+    # Sort messages (oldest first)
     conv.sort(key=lambda x: datetime.fromisoformat(x["timestamp"]), reverse=False)
     
-    # Unread badge (based on follow_up_needed in current page)
-    unread_count = sum(1 for m in conv if m.get("follow_up_needed"))
-    if unread_count > 0:
-        st.markdown(f"<p class='unread-badge'>🔴 {unread_count} unread messages</p>", unsafe_allow_html=True)
+    # Messages area
+    st.markdown('<div class="messages-area" id="chat-messages">', unsafe_allow_html=True)
     
     if not conv:
-        st.info("📭 No messages")
+        st.markdown("""
+        <div class="empty-state">
+            <div class="empty-state-icon">📭</div>
+            <div class="empty-state-text">No messages yet</div>
+            <div class="empty-state-subtext">Start the conversation</div>
+        </div>
+        """, unsafe_allow_html=True)
     else:
-        # Chat area with border
-        st.markdown('<div class="chat-area">', unsafe_allow_html=True)
-        
+        current_date = None
         for msg in conv:
             ts = datetime.fromisoformat(msg["timestamp"])
-            direction = "user" if msg["direction"] in ["user", "incoming"] else "bot"
+            msg_date = ts.date()
+            
+            # Date divider
+            if current_date != msg_date:
+                current_date = msg_date
+                if msg_date == date.today():
+                    date_label = "TODAY"
+                elif msg_date == date.today().replace(day=date.today().day - 1):
+                    date_label = "YESTERDAY"
+                else:
+                    date_label = msg_date.strftime("%d/%m/%Y")
+                
+                st.markdown(f"""
+                <div class="date-divider">
+                    <span>{date_label}</span>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            # Message direction
+            direction = "incoming" if msg["direction"] in ["user", "incoming"] else "outgoing"
             
             raw_text = msg["message"] or ""
             display_text = raw_text
@@ -1270,130 +1652,148 @@ with col2:
                     return f"<span class='highlight'>{m.group(0)}</span>"
                 display_text = re.sub(pattern, repl, display_text, flags=re.IGNORECASE)
             
-            # Replace newlines with <br>
+            # Replace newlines
             display_text = display_text.replace("\n", "<br>")
+            
+            # Message status (for outgoing)
+            status_icon = ""
+            if direction == "outgoing":
+                status_icon = '<span class="message-status">✓✓</span>'
             
             message_html = f"""
             <div class="message-row {direction}">
                 <div class="message-bubble {direction}">
                     <div class="message-text">{display_text}</div>
-                    <div class="message-time">{ts.strftime("%H:%M")}</div>
+                    <div class="message-footer">
+                        <span class="message-time">{ts.strftime("%H:%M")}</span>
+                        {status_icon}
+                    </div>
             """
             
             if msg.get("follow_up_needed"):
                 message_html += '<div class="message-meta">🔴 Follow-up needed</div>'
             if msg.get("notes"):
                 message_html += f'<div class="message-meta">📝 {msg["notes"]}</div>'
-            if msg.get("handled_by"):
-                message_html += f'<div class="message-meta">👤 {msg["handled_by"]}</div>'
             
             message_html += "</div></div>"
             st.markdown(message_html, unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Auto-scroll to bottom
+    st.markdown("""
+    <script>
+        setTimeout(function() {
+            var chatArea = document.getElementById('chat-messages');
+            if (chatArea) {
+                chatArea.scrollTop = chatArea.scrollHeight;
+            }
+        }, 100);
+    </script>
+    """, unsafe_allow_html=True)
+    
+    # Pagination
+    st.markdown('<div class="pagination-section">', unsafe_allow_html=True)
+    col_p1, col_p2, col_p3 = st.columns([1, 2, 1])
+    
+    with col_p1:
+        prev_disabled = st.session_state.conv_offset == 0
+        if st.button("⬅️ Previous", disabled=prev_disabled):
+            st.session_state.conv_offset = max(0, st.session_state.conv_offset - CONV_LIMIT)
+            st.rerun()
+    
+    with col_p2:
+        start_idx = st.session_state.conv_offset + 1 if conv else 0
+        end_idx = st.session_state.conv_offset + len(conv)
+        st.markdown(f'<p class="pagination-info">Messages {start_idx}–{end_idx}</p>', unsafe_allow_html=True)
+    
+    with col_p3:
+        if st.button("Next ➡️"):
+            st.session_state.conv_offset += CONV_LIMIT
+            st.rerun()
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Message input area
+    st.markdown('<div class="message-input-area">', unsafe_allow_html=True)
+    
+    draft_key = f"new_msg_{phone}"
+    type_key = f"msg_type_{phone}"
+    tmpl_key = f"tmpl_{phone}"
+    
+    col_input1, col_input2 = st.columns([3, 1])
+    
+    with col_input1:
+        new_msg = st.text_area(
+            "Message",
+            value=st.session_state.get(draft_key, ""),
+            placeholder="Type a message...",
+            key=draft_key,
+            height=60,
+            label_visibility="collapsed"
+        )
+    
+    with col_input2:
+        msg_type_label = st.radio(
+            "Type",
+            ["Text", "Template"],
+            key=type_key,
+            horizontal=False
+        )
         
-        st.markdown('</div>', unsafe_allow_html=True)  # Close chat-area
-        
-        # Pagination controls with centered info
-        st.markdown('<div class="pagination-section">', unsafe_allow_html=True)
-        col_p1, col_p2, col_p3 = st.columns([1, 2, 1])
-
-        # Prev button – only disabled on first page
-        with col_p1:
-            prev_disabled = st.session_state.conv_offset == 0
-            if st.button("⬅️ Prev", disabled=prev_disabled):
-                st.session_state.conv_offset = max(0, st.session_state.conv_offset - CONV_LIMIT)
-                st.rerun()
-
-        # Info text in center
-        with col_p2:
-            start_idx = st.session_state.conv_offset + 1 if conv else 0
-            end_idx = st.session_state.conv_offset + len(conv)
-            st.markdown(f'<p class="pagination-info">Showing messages {start_idx}–{end_idx}</p>', unsafe_allow_html=True)
-
-        # Next button – always allowed, backend decides if more exist
-        with col_p3:
-            if st.button("Next ➡️"):
-                st.session_state.conv_offset += CONV_LIMIT
-                st.rerun()
-        
-        st.markdown('</div>', unsafe_allow_html=True)  # Close pagination-section
-        
-        # --- Send Message section ---
-        st.markdown('<div class="send-section">', unsafe_allow_html=True)
-        st.markdown("### ✉️ Send Message")
-        col_s1, col_s2 = st.columns([3, 1])
-
-        draft_key = f"new_msg_{phone}"
-        type_key = f"msg_type_{phone}"
-        tmpl_key = f"tmpl_{phone}"
-
-        with col_s1:
-            # Use value parameter with get() to handle missing key gracefully
-            new_msg = st.text_area(
-                "Message",
-                value=st.session_state.get(draft_key, ""),
-                placeholder="Type a WhatsApp message to send...",
-                key=draft_key,
-                height=80
+        if msg_type_label == "Template":
+            template_name = st.text_input(
+                "Template",
+                placeholder="Template name",
+                key=tmpl_key,
+                label_visibility="collapsed"
             )
-
-        with col_s2:
-            msg_type_label = st.radio(
-                "Type",
-                ["Text", "Template"],
-                key=type_key
-            )
+        else:
             template_name = None
-            if msg_type_label == "Template":
-                template_name = st.text_input(
-                    "Template name",
-                    placeholder="e.g. sip_followup_1",
-                    key=tmpl_key
-                )
-
-        if st.button("📨 Send via WhatsApp", use_container_width=True, key=f"send_{phone}"):
-            msg_clean = (new_msg or "").strip()
-            if not msg_clean:
-                st.warning("Message cannot be empty.")
+    
+    if st.button("📤 Send", use_container_width=True, key=f"send_{phone}"):
+        msg_clean = (new_msg or "").strip()
+        if not msg_clean:
+            st.warning("Please type a message")
+        else:
+            msg_type = "template" if msg_type_label == "Template" else "text"
+            ok = send_whatsapp_message(phone, msg_clean, msg_type, template_name)
+            if ok:
+                st.success("✅ Message sent!")
+                if draft_key in st.session_state:
+                    del st.session_state[draft_key]
+                import time
+                time.sleep(0.5)
+                st.rerun()
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Update section
+    update_msg = conv[0] if conv else None
+    
+    if update_msg:
+        st.markdown('<div class="update-section">', unsafe_allow_html=True)
+        st.markdown("### 📝 Update Status")
+        
+        col_u1, col_u2 = st.columns(2)
+        with col_u1:
+            fu_flag = st.checkbox("🔴 Follow-up needed", value=update_msg.get("follow_up_needed", False))
+        with col_u2:
+            handler = st.text_input("👤 Handled by", value=update_msg.get("handled_by") or "")
+        
+        notes = st.text_area("📝 Notes", value=update_msg.get("notes") or "", height=60)
+        
+        if st.button("💾 Save", use_container_width=True):
+            resp = requests.patch(
+                f"{API_BASE}/message/{update_msg['id']}",
+                json={"follow_up_needed": fu_flag, "notes": notes, "handled_by": handler}
+            )
+            if resp.status_code == 200:
+                st.success("✅ Updated!")
+                st.rerun()
             else:
-                msg_type = "template" if msg_type_label == "Template" else "text"
-                ok = send_whatsapp_message(phone, msg_clean, msg_type, template_name)
-                if ok:
-                    st.success("Message sent ✅")
-                    # Clear draft by deleting the key instead of setting to empty string
-                    if draft_key in st.session_state:
-                        del st.session_state[draft_key]
-                    # Wait a moment for the message to be logged
-                    import time
-                    time.sleep(0.5)
-                    st.rerun()
+                st.error(f"Error: {resp.text}")
         
-        st.markdown('</div>', unsafe_allow_html=True)  # Close send-section
-        
-        # Update section - use the first message (oldest) in sorted list for update
-        update_msg = conv[0] if conv else None
-        
-        if update_msg:
-            st.markdown('<div class="update-section">', unsafe_allow_html=True)
-            st.markdown("### 📝 Update Follow-up Status")
-            
-            col_u1, col_u2 = st.columns(2)
-            with col_u1:
-                fu_flag = st.checkbox("🔴 Follow-up needed", value=update_msg.get("follow_up_needed", False))
-            with col_u2:
-                handler = st.text_input("👤 Handled by", value=update_msg.get("handled_by") or "")
-            
-            notes = st.text_area("📝 Notes", value=update_msg.get("notes") or "")
-            
-            if st.button("💾 Save Follow-up", use_container_width=True):
-                resp = requests.patch(
-                    f"{API_BASE}/message/{update_msg['id']}",
-                    json={"follow_up_needed": fu_flag, "notes": notes, "handled_by": handler}
-                )
-                if resp.status_code == 200:
-                    st.success("✅ Saved!")
-                    st.rerun()
-                else:
-                    st.error(f"Error: {resp.text}")
-            
-            st.markdown('</div>', unsafe_allow_html=True)  # Close update-section
-
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
