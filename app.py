@@ -1648,6 +1648,13 @@ with col2:
             if direction == "outgoing":
                 status_icon = '<span class="message-status">✓✓</span>'
             
+            # Build meta info
+            meta_html = ""
+            if msg.get("follow_up_needed"):
+                meta_html += '<div class="message-meta">🔴 Follow-up needed</div>'
+            if msg.get("notes"):
+                meta_html += f'<div class="message-meta">📝 {msg["notes"]}</div>'
+            
             message_html = f"""
             <div class="message-row {direction}">
                 <div class="message-bubble {direction}">
@@ -1656,14 +1663,10 @@ with col2:
                         <span class="message-time">{ts.strftime("%H:%M")}</span>
                         {status_icon}
                     </div>
+                    {meta_html}
+                </div>
+            </div>
             """
-            
-            if msg.get("follow_up_needed"):
-                message_html += '<div class="message-meta">🔴 Follow-up needed</div>'
-            if msg.get("notes"):
-                message_html += f'<div class="message-meta">📝 {msg["notes"]}</div>'
-            
-            message_html += "</div></div>"
             st.markdown(message_html, unsafe_allow_html=True)
     
     st.markdown('</div>', unsafe_allow_html=True)
