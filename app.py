@@ -1409,6 +1409,8 @@ if st.button("📤 Send", use_container_width=True, key=f"send_{phone}"):
             st.success("✅ Message sent!")
             if draft_key in st.session_state:
                 del st.session_state[draft_key]
+            # Reset offset to 0 to show the latest messages including the one just sent
+            st.session_state.conv_offset = 0
             import time
             time.sleep(0.5)
             st.rerun()
