@@ -1172,11 +1172,24 @@ def clean_message_text(raw_text):
     if not raw_text:
         return ""
     
-    # Remove ALL HTML tags using regex - most aggressive approach
-    cleaned = re.sub(r'<[^>]+>', '', raw_text)
+    # First pass: Remove ALL tags between < and >
+    cleaned = re.sub(r'<[^<>]*>', '', raw_text)
     
-    # Normalize whitespace
-    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+    # Second pass: In case there are nested or malformed tags
+    while '<' in cleaned and '>' in cleaned:
+        cleaned = re.sub(r'<[^<>]*>', '', cleaned)
+    
+    # Third pass: Remove any remaining < or > characters
+    cleaned = cleaned.replace('<', '').replace('>', '')
+    
+    # Replace HTML entities
+    cleaned = cleaned.replace('&lt;', '').replace('&gt;', '')
+    cleaned = cleaned.replace('&nbsp;', ' ')
+    cleaned = cleaned.replace('&amp;', '&')
+    
+    # Normalize whitespace - collapse multiple spaces/newlines
+    cleaned = re.sub(r'\s+', ' ', cleaned)
+    cleaned = cleaned.strip()
     
     return cleaned
 
