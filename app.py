@@ -1861,8 +1861,6 @@ with col2:
     chat_container = st.container()
     
     with chat_container:
-        # WhatsApp chat container
-        st.markdown('<div class="chat-container">', unsafe_allow_html=True)
         
         if not conv:
             st.info("📭 No messages yet")
@@ -2035,3 +2033,4 @@ with col2:
                 st.error(f"Error: {str(e)}")
         
         st.markdown('</div>', unsafe_allow_html=True)
+
