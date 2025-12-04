@@ -1167,30 +1167,33 @@ def get_initials(name):
 
 
 def clean_message_text(raw_text):
-    """Clean message text by removing ALL HTML tags"""
+    """Aggressively remove ALL HTML/XML tags and content"""
     if not raw_text:
         return ""
     
-    # First pass: Remove ALL tags between < and >
-    cleaned = re.sub(r'<[^<>]*>', '', raw_text)
+    # Remove everything that looks like HTML/XML - be VERY aggressive
+    # This pattern removes opening tags, closing tags, and self-closing tags
+    cleaned = re.sub(r'<[^>]+>', '', raw_text)
     
-    # Second pass: In case there are nested or malformed tags
-    while '<' in cleaned and '>' in cleaned:
-        cleaned = re.sub(r'<[^<>]*>', '', cleaned)
+    # Keep looping until no more tags found
+    max_iterations = 10
+    iteration = 0
+    while ('<' in cleaned or '>' in cleaned) and iteration < max_iterations:
+        cleaned = re.sub(r'<[^>]*>', '', cleaned)
+        iteration += 1
     
-    # Third pass: Remove any remaining < or > characters
+    # Remove any standalone < or > characters
     cleaned = cleaned.replace('<', '').replace('>', '')
     
-    # Replace HTML entities
+    # Remove common HTML entities
     cleaned = cleaned.replace('&lt;', '').replace('&gt;', '')
-    cleaned = cleaned.replace('&nbsp;', ' ')
-    cleaned = cleaned.replace('&amp;', '&')
+    cleaned = cleaned.replace('&nbsp;', ' ').replace('&amp;', '&')
+    cleaned = cleaned.replace('&quot;', '"').replace('&#39;', "'")
     
-    # Normalize whitespace - collapse multiple spaces/newlines
-    cleaned = re.sub(r'\s+', ' ', cleaned)
-    cleaned = cleaned.strip()
+    # Remove excessive whitespace
+    cleaned = ' '.join(cleaned.split())
     
-    return cleaned
+    return cleaned.strip()
 
 
 # Fetch and filter contacts
@@ -1394,8 +1397,12 @@ else:
         
         # Get raw message text and CLEAN IT to remove HTML tags
         raw_text = msg["message"] or ""
-        raw_text = clean_message_text(raw_text)  # Remove all HTML tags from database
-        display_text = raw_text
+        
+        # Apply aggressive HTML cleaning
+        cleaned_text = clean_message_text(raw_text)
+        
+        # Use cleaned text for display
+        display_text = cleaned_text if cleaned_text else raw_text
         
         # Highlight search matches
         if search_query:
