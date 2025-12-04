@@ -1277,6 +1277,11 @@ else:
         
         raw_text = msg["message"] or ""
         
+        # Remove unwanted HTML tags from the message content
+        raw_text = raw_text.replace("</div>", "").replace("<div>", "")
+        raw_text = raw_text.replace("</span>", "").replace("<span>", "")
+        raw_text = raw_text.strip()
+        
         # Escape HTML first to prevent any HTML tags from rendering
         display_text = html.escape(raw_text)
         
