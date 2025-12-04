@@ -6,46 +6,37 @@ from pathlib import Path
 import re
 
 API_BASE = "https://dashboard-backend-qqmi.onrender.com"
-MAKE_WEBHOOK_URL = st.secrets.get("make_webhook_url", "")  # set this in secrets.toml
-
+MAKE_WEBHOOK_URL = st.secrets.get("make_webhook_url", "")
 
 def check_password():
     """Simple password gate using Streamlit secrets"""
-
     def password_entered():
         """Checks whether the password entered by the user is correct."""
         if st.session_state["password"] == st.secrets["dashboard_password"]:
             st.session_state["password_correct"] = True
-            # Don't store the password
             del st.session_state["password"]
         else:
             st.session_state["password_correct"] = False
 
     if "password_correct" not in st.session_state:
-        # First run, show input
         st.text_input("Password", type="password", on_change=password_entered, key="password")
         st.stop()
-
     elif not st.session_state["password_correct"]:
-        # Wrong password, show input + error
         st.text_input("Password", type="password", on_change=password_entered, key="password")
         st.error("❌ Wrong password")
         st.stop()
-
 
 # Page config
 st.set_page_config(
     page_title="WhatsApp Chat Inbox",
     layout="wide",
-    initial_sidebar_state="collapsed"  # Start with sidebar collapsed
+    initial_sidebar_state="collapsed"
 )
 check_password()
 
-# Initialize theme in session state
+# Initialize theme and states
 if "theme" not in st.session_state:
-    st.session_state.theme = "dark"  # default to dark mode
-
-# Initialize filter states
+    st.session_state.theme = "dark"
 if "filter_phone" not in st.session_state:
     st.session_state.filter_phone = ""
 if "filter_name" not in st.session_state:
@@ -65,7 +56,6 @@ if "filter_only_fu" not in st.session_state:
 if "show_filters" not in st.session_state:
     st.session_state.show_filters = False
 
-# Function to load and encode logo
 def get_base64_logo():
     """Load logo.png and convert to base64 for embedding"""
     logo_path = Path("Logo.png")
@@ -75,108 +65,89 @@ def get_base64_logo():
         return base64.b64encode(data).decode()
     return None
 
-# Function to get CSS based on theme
 def get_css(theme):
     if theme == "dark":
         return """
         <style>
-            /* Global dark theme */
+            /* WhatsApp Dark Theme */
             .main {
-                background-color: #0d1418;
+                background-color: #0b141a;
                 padding: 0 !important;
             }
             
-            /* Remove default padding */
             .block-container {
-                padding-top: 0 !important;
-                padding-bottom: 0 !important;
+                padding: 0 !important;
                 max-width: 100% !important;
             }
             
-            /* Header */
-            .main-header {
+            /* WhatsApp Header */
+            .wa-header {
                 background: #202c33;
-                padding: 15px 20px;
+                padding: 10px 16px;
                 display: flex;
                 align-items: center;
                 gap: 15px;
                 border-bottom: 1px solid #2a3942;
-                margin-bottom: 10px;
                 position: sticky;
                 top: 0;
-                z-index: 999;
+                z-index: 1000;
+                height: 60px;
             }
             
-            .main-header h1 {
+            .wa-header-title {
                 color: #e9edef;
                 margin: 0;
-                font-size: 19px;
-                font-weight: 400;
+                font-size: 16px;
+                font-weight: 500;
                 flex: 1;
             }
             
-            .logo-img {
+            .wa-logo {
                 width: 40px;
                 height: 40px;
                 border-radius: 50%;
                 object-fit: cover;
             }
             
-            /* Filter section */
-            .filter-container {
-                background-color: #111b21;
-                border: 1px solid #2a3942;
-                border-radius: 8px;
-                padding: 0;
-                margin-bottom: 20px;
+            .wa-header-icons {
+                display: flex;
+                gap: 24px;
+                color: #aebac1;
+                font-size: 20px;
+            }
+            
+            /* Layout Container */
+            .wa-container {
+                display: flex;
+                height: calc(100vh - 60px);
                 overflow: hidden;
             }
             
-            .filter-header {
-                background-color: #202c33;
-                padding: 15px 20px;
+            /* Contact List Sidebar */
+            .wa-sidebar {
+                width: 400px;
+                background: #111b21;
+                border-right: 1px solid #2a3942;
                 display: flex;
-                justify-content: space-between;
-                align-items: center;
-                cursor: pointer;
+                flex-direction: column;
+                overflow: hidden;
+            }
+            
+            .wa-search-container {
+                padding: 8px 12px;
+                background: #111b21;
                 border-bottom: 1px solid #2a3942;
             }
             
-            .filter-header h3 {
-                color: #e9edef;
-                margin: 0;
-                font-size: 16px;
+            .wa-contacts-list {
+                overflow-y: auto;
+                flex: 1;
+            }
+            
+            /* Contact Card (WhatsApp Style) */
+            .wa-contact {
                 display: flex;
                 align-items: center;
-                gap: 10px;
-            }
-            
-            .filter-content {
-                padding: 20px;
-            }
-            
-            .filter-row {
-                display: flex;
-                gap: 20px;
-                margin-bottom: 15px;
-                flex-wrap: wrap;
-            }
-            
-            .filter-group {
-                flex: 1;
-                min-width: 200px;
-            }
-            
-            .filter-group label {
-                color: #8696a0;
-                font-size: 14px;
-                margin-bottom: 5px;
-                display: block;
-            }
-            
-            /* Contact list */
-            .contact-card {
-                background-color: #111b21;
                 padding: 12px 16px;
                 cursor: pointer;
                 border-bottom: 1px solid #2a3942;
@@ -184,226 +155,271 @@ def get_css(theme):
                 position: relative;
             }
             
-            .contact-card:hover {
+            .wa-contact:hover {
                 background-color: #202c33;
             }
             
-            .contact-card.selected {
+            .wa-contact.active {
                 background-color: #2a3942;
             }
             
-            .contact-name {
+            .wa-contact-avatar {
+                width: 49px;
+                height: 49px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #667781 0%, #8696a0 100%);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #e9edef;
+                font-size: 20px;
+                font-weight: 500;
+                flex-shrink: 0;
+                margin-right: 12px;
+            }
+            
+            .wa-contact-info {
+                flex: 1;
+                min-width: 0;
+                padding-right: 12px;
+            }
+            
+            .wa-contact-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 4px;
+            }
+            
+            .wa-contact-name {
                 color: #e9edef;
                 font-size: 16px;
                 font-weight: 400;
-                margin-bottom: 2px;
-            }
-            
-            .contact-phone {
-                color: #667781;
-                font-size: 13px;
-                margin-bottom: 3px;
-            }
-            
-            .contact-preview {
-                color: #8696a0;
-                font-size: 14px;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
             }
             
-            .contact-time {
-                position: absolute;
-                top: 12px;
-                right: 16px;
-                color: #8696a0;
+            .wa-contact-time {
+                color: #667781;
                 font-size: 12px;
+                white-space: nowrap;
+                margin-left: 8px;
             }
             
-            .follow-up-dot {
-                color: #ff3b30;
-                font-weight: bold;
-                margin-right: 5px;
-            }
-            
-            /* Chat header */
-            .chat-header {
-                background: #202c33;
-                padding: 10px 20px;
-                margin-bottom: 10px;
-                border-bottom: 1px solid #2a3942;
+            .wa-contact-preview {
+                color: #8696a0;
+                font-size: 14px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
                 display: flex;
-                justify-content: space-between;
                 align-items: center;
-                border: 1px solid #3b4a54;
-                border-radius: 8px;
+                gap: 4px;
             }
             
-            .chat-header-info h3 {
+            .wa-unread-badge {
+                background: #00a884;
+                color: #111b21;
+                border-radius: 12px;
+                padding: 0 6px;
+                font-size: 12px;
+                font-weight: 500;
+                min-width: 20px;
+                height: 20px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                position: absolute;
+                right: 16px;
+                bottom: 16px;
+            }
+            
+            .wa-fu-indicator {
+                color: #ff3b30;
+                font-size: 10px;
+                margin-right: 2px;
+            }
+            
+            /* Chat Area */
+            .wa-chat-area {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                background: #0b141a;
+                overflow: hidden;
+            }
+            
+            /* Chat Header */
+            .wa-chat-header {
+                background: #202c33;
+                padding: 10px 16px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                border-bottom: 1px solid #2a3942;
+                height: 60px;
+            }
+            
+            .wa-chat-header-info {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                flex: 1;
+            }
+            
+            .wa-chat-header-text h3 {
                 color: #e9edef;
                 margin: 0;
                 font-size: 16px;
                 font-weight: 400;
             }
             
-            .chat-header-info p {
+            .wa-chat-header-text p {
                 color: #8696a0;
-                margin: 0;
+                margin: 2px 0 0 0;
                 font-size: 13px;
             }
             
-            .unread-badge {
-                color: #ff3b30;
-                font-size: 13px;
-                margin: 0 0 10px 20px;
-            }
-            
-            /* Message container */
-            .message-row {
+            .wa-chat-header-actions {
                 display: flex;
-                margin-bottom: 12px;
+                gap: 24px;
+                color: #aebac1;
+                font-size: 20px;
+            }
+            
+            /* Messages Container */
+            .wa-messages {
+                flex: 1;
+                overflow-y: auto;
+                padding: 12px 7% 12px 7%;
+                background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect fill="%230b141a" width="100" height="100"/><path fill="%231a252d" opacity="0.05" d="M0 0h50v50H0z"/></svg>');
+                background-size: 400px 400px;
+            }
+            
+            /* Message Bubbles */
+            .wa-message-wrapper {
+                display: flex;
+                margin-bottom: 8px;
                 clear: both;
             }
             
-            .message-row.user {
+            .wa-message-wrapper.incoming {
                 justify-content: flex-start;
             }
             
-            .message-row.bot {
+            .wa-message-wrapper.outgoing {
                 justify-content: flex-end;
             }
             
-            /* Message bubble */
-            .message-bubble {
+            .wa-message {
                 max-width: 65%;
-                padding: 8px 12px 8px 12px;
-                border-radius: 8px;
+                padding: 6px 7px 8px 9px;
+                border-radius: 7.5px;
                 position: relative;
-                box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
+                box-shadow: 0 1px 0.5px rgba(11,20,26,.13);
             }
             
-            .message-bubble.user {
+            .wa-message.incoming {
                 background-color: #202c33;
             }
             
-            .message-bubble.bot {
+            .wa-message.outgoing {
                 background-color: #005c4b;
             }
             
-            .message-bubble.chatbot {
-                background-color: #1f4068;
-                border-left: 3px solid #00a884;
-            }
-            
-            .message-bubble.dashboard {
-                background-color: #005c4b;
-                border-left: 3px solid #ffd700;
-            }
-            
-            .message-text {
+            .wa-message-text {
                 color: #e9edef;
                 font-size: 14.2px;
                 line-height: 19px;
-                margin-bottom: 4px;
                 word-wrap: break-word;
+                white-space: pre-wrap;
             }
             
-            .sender-badge {
-                display: inline-block;
-                font-size: 10px;
-                padding: 2px 6px;
-                border-radius: 3px;
-                margin-bottom: 4px;
-                font-weight: 500;
-            }
-            
-            .sender-badge.chatbot {
-                background-color: #00a884;
-                color: #111b21;
-            }
-            
-            .sender-badge.dashboard {
-                background-color: #ffd700;
-                color: #111b21;
-            }
-            
-            .message-time {
-                color: #8696a0;
-                font-size: 11px;
-                text-align: right;
-                margin-top: 4px;
-            }
-            
-            .message-meta {
-                color: #8696a0;
-                font-size: 11px;
-                margin-top: 4px;
-            }
-            
-            /* Highlight for search matches */
-            .highlight {
-                background-color: #86745f;
-                padding: 0 1px;
-                border-radius: 2px;
-            }
-            
-            /* Update section */
-            .update-section {
-                border: 1px solid #3b4a54;
-                border-radius: 8px;
-                padding: 15px;
-                margin-top: 20px;
-                background-color: #111b21;
-            }
-            
-            .update-section h3 {
-                color: #e9edef !important;
-                font-size: 16px !important;
-                margin-bottom: 15px !important;
-            }
-            
-            .send-section {
-                border: 1px solid #3b4a54;
-                border-radius: 8px;
-                padding: 15px;
-                margin-top: 20px;
-                margin-bottom: 20px;
-                background-color: #111b21;
-            }
-            
-            .send-section h3 {
-                color: #e9edef !important;
-                font-size: 16px !important;
-                margin-bottom: 15px !important;
-            }
-            
-            .chat-area {
-                border: 1px solid #3b4a54;
-                border-radius: 8px;
-                padding: 15px;
-                margin-bottom: 20px;
-                background-color: #0d1418;
-                min-height: 1px;
-            }
-            
-            .pagination-section {
-                border: 1px solid #3b4a54;
-                border-radius: 8px;
-                padding: 15px;
-                margin-bottom: 20px;
-                background-color: #111b21;
+            .wa-message-footer {
                 display: flex;
                 align-items: center;
-                justify-content: space-between;
+                justify-content: flex-end;
+                gap: 4px;
+                margin-top: 4px;
             }
             
-            .pagination-info {
+            .wa-message-time {
+                color: rgba(241,241,242,.6);
+                font-size: 11px;
+            }
+            
+            .wa-message.outgoing .wa-message-time {
+                color: rgba(241,241,242,.6);
+            }
+            
+            .wa-checkmark {
+                color: #53bdeb;
+                font-size: 16px;
+                line-height: 1;
+            }
+            
+            .wa-message-meta {
+                background: rgba(0,0,0,0.15);
+                padding: 3px 6px;
+                border-radius: 4px;
+                margin-top: 4px;
+                font-size: 11px;
                 color: #8696a0;
-                font-size: 14px;
-                margin: 0;
-                text-align: center;
+            }
+            
+            /* Message Input Area */
+            .wa-input-area {
+                background: #202c33;
+                padding: 10px 16px;
+                display: flex;
+                align-items: flex-end;
+                gap: 8px;
+                border-top: 1px solid #2a3942;
+            }
+            
+            .wa-input-wrapper {
                 flex: 1;
+                background: #2a3942;
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                padding: 8px 12px;
+                gap: 8px;
+            }
+            
+            .wa-input-icon {
+                color: #8696a0;
+                font-size: 24px;
+                cursor: pointer;
+            }
+            
+            .wa-send-button {
+                background: #00a884;
+                border: none;
+                border-radius: 50%;
+                width: 48px;
+                height: 48px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                color: #111b21;
+                font-size: 20px;
+                transition: background 0.2s;
+            }
+            
+            .wa-send-button:hover {
+                background: #06cf9c;
+            }
+            
+            /* Filters Panel */
+            .wa-filters {
+                background: #111b21;
+                border-bottom: 1px solid #2a3942;
+                padding: 12px;
+                max-height: 300px;
+                overflow-y: auto;
             }
             
             /* Buttons */
@@ -411,497 +427,460 @@ def get_css(theme):
                 background-color: #00a884 !important;
                 color: white !important;
                 border: none !important;
+                border-radius: 8px !important;
                 font-weight: 500 !important;
+                padding: 8px 16px !important;
             }
             
             .stButton > button:hover {
                 background-color: #06cf9c !important;
             }
             
-            .delete-btn {
-                background-color: #dc3545 !important;
-                padding: 4px 8px !important;
-                font-size: 11px !important;
-                border-radius: 4px !important;
-                color: white !important;
-                border: none !important;
-                cursor: pointer;
-                margin-top: 4px;
-            }
-            
             /* Input fields */
             .stTextInput input, .stTextArea textarea {
                 background-color: #2a3942 !important;
                 color: #e9edef !important;
                 border: 1px solid #3b4a54 !important;
+                border-radius: 8px !important;
             }
             
-            /* Checkbox */
-            [data-testid="stCheckbox"] label {
-                color: #e9edef !important;
+            /* Scrollbar */
+            ::-webkit-scrollbar {
+                width: 6px;
             }
             
-            /* Selectbox */
-            .stSelectbox label {
-                color: #e9edef !important;
+            ::-webkit-scrollbar-track {
+                background: #0b141a;
             }
             
-            /* Radio buttons */
-            .stRadio label {
-                color: #e9edef !important;
+            ::-webkit-scrollbar-thumb {
+                background: #374248;
+                border-radius: 3px;
             }
             
-            /* Date and time inputs */
+            ::-webkit-scrollbar-thumb:hover {
+                background: #4a5a63;
+            }
+            
+            /* Hide Streamlit branding */
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            
+            /* Date picker styling */
             .stDateInput input, .stTimeInput input {
                 background-color: #2a3942 !important;
                 color: #e9edef !important;
                 border: 1px solid #3b4a54 !important;
             }
             
-            /* Scrollbar */
-            ::-webkit-scrollbar {
-                width: 6px;
-                height: 6px;
+            /* Checkbox styling */
+            [data-testid="stCheckbox"] label {
+                color: #e9edef !important;
             }
             
-            ::-webkit-scrollbar-track {
-                background: #0d1418;
+            /* Select box styling */
+            .stSelectbox label, .stRadio label {
+                color: #e9edef !important;
             }
             
-            ::-webkit-scrollbar-thumb {
-                background: #2a3942;
-                border-radius: 3px;
-            }
-            
-            ::-webkit-scrollbar-thumb:hover {
-                background: #3b4a54;
-            }
-            
-            /* Hide streamlit menu/footer and header */
-            #MainMenu {visibility: hidden;}
-            footer {visibility: hidden;}
-            header {visibility: hidden;}
-            
-            /* Override streamlit's default padding for header */
-            .main .block-container {
-                padding-top: 0rem !important;
-            }
-            
-            /* Header buttons container */
-            .header-buttons {
+            /* Empty state */
+            .wa-empty-state {
                 display: flex;
+                flex-direction: column;
                 align-items: center;
-                gap: 10px;
+                justify-content: center;
+                height: 100%;
+                color: #667781;
+                text-align: center;
+                padding: 40px;
             }
             
-            /* Filter action buttons */
-            .filter-actions {
-                display: flex;
-                gap: 10px;
-                margin-top: 20px;
-                justify-content: flex-end;
-            }
-            
-            /* Filter toggle and theme buttons row */
-            .top-buttons-row {
-                display: flex;
-                gap: 10px;
-                margin-bottom: 15px;
+            .wa-empty-state-icon {
+                font-size: 80px;
+                margin-bottom: 20px;
+                opacity: 0.3;
             }
         </style>
         """
     else:  # light theme
         return """
         <style>
-            /* Global light theme */
+            /* WhatsApp Light Theme */
             .main {
-                background-color: #ffffff;
+                background-color: #f0f2f5;
                 padding: 0 !important;
             }
             
-            /* Remove default padding */
             .block-container {
-                padding-top: 0 !important;
-                padding-bottom: 0 !important;
+                padding: 0 !important;
                 max-width: 100% !important;
             }
             
-            /* Header */
-            .main-header {
-                background: #f0f2f5;
-                padding: 15px 20px;
+            /* WhatsApp Header */
+            .wa-header {
+                background: #ededed;
+                padding: 10px 16px;
                 display: flex;
                 align-items: center;
                 gap: 15px;
-                border-bottom: 1px solid #dddfe2;
-                margin-bottom: 10px;
+                border-bottom: 1px solid #d1d7db;
                 position: sticky;
                 top: 0;
-                z-index: 999;
+                z-index: 1000;
+                height: 60px;
             }
             
-            .main-header h1 {
-                color: #1c1e21;
+            .wa-header-title {
+                color: #3b4a54;
                 margin: 0;
-                font-size: 19px;
-                font-weight: 400;
+                font-size: 16px;
+                font-weight: 500;
                 flex: 1;
             }
             
-            .logo-img {
+            .wa-logo {
                 width: 40px;
                 height: 40px;
                 border-radius: 50%;
                 object-fit: cover;
             }
             
-            /* Header buttons container */
-            .header-buttons {
+            .wa-header-icons {
                 display: flex;
-                align-items: center;
-                gap: 10px;
+                gap: 24px;
+                color: #54656f;
+                font-size: 20px;
             }
             
-            /* Filter section */
-            .filter-container {
-                background-color: #ffffff;
-                border: 1px solid #dddfe2;
-                border-radius: 8px;
-                padding: 0;
-                margin-bottom: 20px;
+            /* Layout Container */
+            .wa-container {
+                display: flex;
+                height: calc(100vh - 60px);
                 overflow: hidden;
             }
             
-            .filter-header {
+            /* Contact List Sidebar */
+            .wa-sidebar {
+                width: 400px;
+                background: #ffffff;
+                border-right: 1px solid #d1d7db;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+            }
+            
+            .wa-search-container {
+                padding: 8px 12px;
+                background: #f0f2f5;
+                border-bottom: 1px solid #d1d7db;
+            }
+            
+            .wa-contacts-list {
+                overflow-y: auto;
+                flex: 1;
+            }
+            
+            /* Contact Card */
+            .wa-contact {
+                display: flex;
+                align-items: center;
+                padding: 12px 16px;
+                cursor: pointer;
+                border-bottom: 1px solid #f0f2f5;
+                transition: background-color 0.2s;
+                position: relative;
+                background: #ffffff;
+            }
+            
+            .wa-contact:hover {
+                background-color: #f5f6f6;
+            }
+            
+            .wa-contact.active {
                 background-color: #f0f2f5;
-                padding: 15px 20px;
+            }
+            
+            .wa-contact-avatar {
+                width: 49px;
+                height: 49px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #dfe5e7 0%, #c4cdd1 100%);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #667781;
+                font-size: 20px;
+                font-weight: 500;
+                flex-shrink: 0;
+                margin-right: 12px;
+            }
+            
+            .wa-contact-info {
+                flex: 1;
+                min-width: 0;
+                padding-right: 12px;
+            }
+            
+            .wa-contact-header {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                cursor: pointer;
-                border-bottom: 1px solid #dddfe2;
+                margin-bottom: 4px;
             }
             
-            .filter-header h3 {
-                color: #1c1e21;
-                margin: 0;
-                font-size: 16px;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            }
-            
-            .filter-content {
-                padding: 20px;
-            }
-            
-            .filter-row {
-                display: flex;
-                gap: 20px;
-                margin-bottom: 15px;
-                flex-wrap: wrap;
-            }
-            
-            .filter-group {
-                flex: 1;
-                min-width: 200px;
-            }
-            
-            .filter-group label {
-                color: #65676b;
-                font-size: 14px;
-                margin-bottom: 5px;
-                display: block;
-            }
-            
-            /* Contact list */
-            .contact-card {
-                background-color: #ffffff;
-                padding: 12px 16px;
-                cursor: pointer;
-                border-bottom: 1px solid #dddfe2;
-                transition: background-color 0.2s;
-                position: relative;
-            }
-            
-            .contact-card:hover {
-                background-color: #f0f2f5;
-            }
-            
-            .contact-card.selected {
-                background-color: #e4e6eb;
-            }
-            
-            .contact-name {
-                color: #1c1e21;
+            .wa-contact-name {
+                color: #111b21;
                 font-size: 16px;
                 font-weight: 400;
-                margin-bottom: 2px;
-            }
-            
-            .contact-phone {
-                color: #65676b;
-                font-size: 13px;
-                margin-bottom: 3px;
-            }
-            
-            .contact-preview {
-                color: #65676b;
-                font-size: 14px;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
             }
             
-            .contact-time {
-                position: absolute;
-                top: 12px;
-                right: 16px;
-                color: #65676b;
+            .wa-contact-time {
+                color: #667781;
                 font-size: 12px;
+                white-space: nowrap;
+                margin-left: 8px;
             }
             
-            .follow-up-dot {
-                color: #ff3b30;
-                font-weight: bold;
-                margin-right: 5px;
-            }
-            
-            /* Chat header */
-            .chat-header {
-                background: #f0f2f5;
-                padding: 10px 20px;
-                margin-bottom: 10px;
-                border-bottom: 1px solid #dddfe2;
+            .wa-contact-preview {
+                color: #667781;
+                font-size: 14px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
                 display: flex;
-                justify-content: space-between;
                 align-items: center;
-                border: 1px solid #ccd0d5;
-                border-radius: 8px;
+                gap: 4px;
             }
             
-            .chat-header-info h3 {
-                color: #1c1e21;
+            .wa-unread-badge {
+                background: #25d366;
+                color: #ffffff;
+                border-radius: 12px;
+                padding: 0 6px;
+                font-size: 12px;
+                font-weight: 500;
+                min-width: 20px;
+                height: 20px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                position: absolute;
+                right: 16px;
+                bottom: 16px;
+            }
+            
+            .wa-fu-indicator {
+                color: #ff3b30;
+                font-size: 10px;
+                margin-right: 2px;
+            }
+            
+            /* Chat Area */
+            .wa-chat-area {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                background: #efeae2;
+                overflow: hidden;
+            }
+            
+            /* Chat Header */
+            .wa-chat-header {
+                background: #ededed;
+                padding: 10px 16px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                border-bottom: 1px solid #d1d7db;
+                height: 60px;
+            }
+            
+            .wa-chat-header-info {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                flex: 1;
+            }
+            
+            .wa-chat-header-text h3 {
+                color: #111b21;
                 margin: 0;
                 font-size: 16px;
                 font-weight: 400;
             }
             
-            .chat-header-info p {
-                color: #65676b;
-                margin: 0;
+            .wa-chat-header-text p {
+                color: #667781;
+                margin: 2px 0 0 0;
                 font-size: 13px;
             }
             
-            .unread-badge {
-                color: #ff3b30;
-                font-size: 13px;
-                margin: 0 0 10px 20px;
-            }
-            
-            /* Message container */
-            .message-row {
+            .wa-chat-header-actions {
                 display: flex;
-                margin-bottom: 12px;
+                gap: 24px;
+                color: #54656f;
+                font-size: 20px;
+            }
+            
+            /* Messages Container */
+            .wa-messages {
+                flex: 1;
+                overflow-y: auto;
+                padding: 12px 7% 12px 7%;
+                background-color: #efeae2;
+                background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect fill="%23efeae2" width="100" height="100"/></svg>');
+            }
+            
+            /* Message Bubbles */
+            .wa-message-wrapper {
+                display: flex;
+                margin-bottom: 8px;
                 clear: both;
             }
             
-            .message-row.user {
+            .wa-message-wrapper.incoming {
                 justify-content: flex-start;
             }
             
-            .message-row.bot {
+            .wa-message-wrapper.outgoing {
                 justify-content: flex-end;
             }
             
-            /* Message bubble */
-            .message-bubble {
+            .wa-message {
                 max-width: 65%;
-                padding: 8px 12px 8px 12px;
-                border-radius: 8px;
+                padding: 6px 7px 8px 9px;
+                border-radius: 7.5px;
                 position: relative;
-                box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
+                box-shadow: 0 1px 0.5px rgba(11,20,26,.13);
             }
             
-            .message-bubble.user {
-                background-color: #f0f2f5;
+            .wa-message.incoming {
+                background-color: #ffffff;
             }
             
-            .message-bubble.bot {
-                background-color: #0084ff;
+            .wa-message.outgoing {
+                background-color: #d9fdd3;
             }
             
-            .message-bubble.chatbot {
-                background-color: #4a90e2;
-                border-left: 3px solid #0084ff;
-            }
-            
-            .message-bubble.dashboard {
-                background-color: #0084ff;
-                border-left: 3px solid #ffd700;
-            }
-            
-            .message-text {
-                color: #1c1e21;
+            .wa-message-text {
+                color: #111b21;
                 font-size: 14.2px;
                 line-height: 19px;
-                margin-bottom: 4px;
                 word-wrap: break-word;
+                white-space: pre-wrap;
             }
             
-            .sender-badge {
-                display: inline-block;
-                font-size: 10px;
-                padding: 2px 6px;
-                border-radius: 3px;
-                margin-bottom: 4px;
-                font-weight: 500;
-            }
-            
-            .sender-badge.chatbot {
-                background-color: #0084ff;
-                color: white;
-            }
-            
-            .sender-badge.dashboard {
-                background-color: #ffd700;
-                color: #1c1e21;
-            }
-            
-            .message-time {
-                color: #65676b;
-                font-size: 11px;
-                text-align: right;
-                margin-top: 4px;
-            }
-            
-            .message-meta {
-                color: #65676b;
-                font-size: 11px;
-                margin-top: 4px;
-            }
-            
-            /* Highlight for search matches */
-            .highlight {
-                background-color: #ffd700;
-                padding: 0 1px;
-                border-radius: 2px;
-            }
-            
-            /* Update section */
-            .update-section {
-                border: 1px solid #ccd0d5;
-                border-radius: 8px;
-                padding: 15px;
-                margin-top: 20px;
-                background-color: #ffffff;
-            }
-            
-            .update-section h3 {
-                color: #1c1e21 !important;
-                font-size: 16px !important;
-                margin-bottom: 15px !important;
-            }
-            
-            .send-section {
-                border: 1px solid #ccd0d5;
-                border-radius: 8px;
-                padding: 15px;
-                margin-top: 20px;
-                margin-bottom: 20px;
-                background-color: #ffffff;
-            }
-            
-            .send-section h3 {
-                color: #1c1e21 !important;
-                font-size: 16px !important;
-                margin-bottom: 15px !important;
-            }
-            
-            .chat-area {
-                border: 1px solid #ccd0d5;
-                border-radius: 8px;
-                padding: 15px;
-                margin-bottom: 20px;
-                background-color: #ffffff;
-                min-height: 1px;
-            }
-            
-            .pagination-section {
-                border: 1px solid #ccd0d5;
-                border-radius: 8px;
-                padding: 15px;
-                margin-bottom: 20px;
-                background-color: #ffffff;
+            .wa-message-footer {
                 display: flex;
                 align-items: center;
-                justify-content: space-between;
+                justify-content: flex-end;
+                gap: 4px;
+                margin-top: 4px;
             }
             
-            .pagination-info {
-                color: #65676b;
-                font-size: 14px;
-                margin: 0;
-                text-align: center;
+            .wa-message-time {
+                color: rgba(17,27,33,.45);
+                font-size: 11px;
+            }
+            
+            .wa-checkmark {
+                color: #53bdeb;
+                font-size: 16px;
+                line-height: 1;
+            }
+            
+            .wa-message-meta {
+                background: rgba(0,0,0,0.05);
+                padding: 3px 6px;
+                border-radius: 4px;
+                margin-top: 4px;
+                font-size: 11px;
+                color: #667781;
+            }
+            
+            /* Message Input Area */
+            .wa-input-area {
+                background: #ededed;
+                padding: 10px 16px;
+                display: flex;
+                align-items: flex-end;
+                gap: 8px;
+                border-top: 1px solid #d1d7db;
+            }
+            
+            .wa-input-wrapper {
                 flex: 1;
+                background: #ffffff;
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                padding: 8px 12px;
+                gap: 8px;
+            }
+            
+            .wa-input-icon {
+                color: #54656f;
+                font-size: 24px;
+                cursor: pointer;
+            }
+            
+            .wa-send-button {
+                background: #25d366;
+                border: none;
+                border-radius: 50%;
+                width: 48px;
+                height: 48px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                color: #ffffff;
+                font-size: 20px;
+                transition: background 0.2s;
+            }
+            
+            .wa-send-button:hover {
+                background: #20bd5f;
+            }
+            
+            /* Filters Panel */
+            .wa-filters {
+                background: #ffffff;
+                border-bottom: 1px solid #d1d7db;
+                padding: 12px;
+                max-height: 300px;
+                overflow-y: auto;
             }
             
             /* Buttons */
             .stButton > button {
-                background-color: #0084ff !important;
+                background-color: #25d366 !important;
                 color: white !important;
                 border: none !important;
+                border-radius: 8px !important;
                 font-weight: 500 !important;
+                padding: 8px 16px !important;
             }
             
             .stButton > button:hover {
-                background-color: #0073e6 !important;
-            }
-            
-            .delete-btn {
-                background-color: #dc3545 !important;
-                padding: 4px 8px !important;
-                font-size: 11px !important;
-                border-radius: 4px !important;
-                color: white !important;
-                border: none !important;
-                cursor: pointer;
-                margin-top: 4px;
+                background-color: #20bd5f !important;
             }
             
             /* Input fields */
             .stTextInput input, .stTextArea textarea {
                 background-color: #ffffff !important;
-                color: #1c1e21 !important;
-                border: 1px solid #ccd0d5 !important;
-            }
-            
-            /* Checkbox */
-            [data-testid="stCheckbox"] label {
-                color: #1c1e21 !important;
-            }
-            
-            /* Selectbox */
-            .stSelectbox label {
-                color: #1c1e21 !important;
-            }
-            
-            /* Radio buttons */
-            .stRadio label {
-                color: #1c1e21 !important;
-            }
-            
-            /* Date and time inputs */
-            .stDateInput input, .stTimeInput input {
-                background-color: #ffffff !important;
-                color: #1c1e21 !important;
-                border: 1px solid #ccd0d5 !important;
+                color: #111b21 !important;
+                border: 1px solid #d1d7db !important;
+                border-radius: 8px !important;
             }
             
             /* Scrollbar */
             ::-webkit-scrollbar {
                 width: 6px;
-                height: 6px;
             }
             
             ::-webkit-scrollbar-track {
@@ -909,166 +888,58 @@ def get_css(theme):
             }
             
             ::-webkit-scrollbar-thumb {
-                background: #aeb5bb;
+                background: #c4cdd1;
                 border-radius: 3px;
             }
             
             ::-webkit-scrollbar-thumb:hover {
-                background: #ccd0d5;
+                background: #aeb5bb;
             }
             
-            /* Hide streamlit menu/footer and header */
+            /* Hide Streamlit branding */
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
             header {visibility: hidden;}
             
-            /* Override streamlit's default padding for header */
-            .main .block-container {
-                padding-top: 0rem !important;
+            /* Date picker styling */
+            .stDateInput input, .stTimeInput input {
+                background-color: #ffffff !important;
+                color: #111b21 !important;
+                border: 1px solid #d1d7db !important;
             }
             
-            /* Header buttons container */
-            .header-buttons {
+            /* Checkbox styling */
+            [data-testid="stCheckbox"] label {
+                color: #111b21 !important;
+            }
+            
+            /* Select box styling */
+            .stSelectbox label, .stRadio label {
+                color: #111b21 !important;
+            }
+            
+            /* Empty state */
+            .wa-empty-state {
                 display: flex;
+                flex-direction: column;
                 align-items: center;
-                gap: 10px;
+                justify-content: center;
+                height: 100%;
+                color: #667781;
+                text-align: center;
+                padding: 40px;
             }
             
-            /* Filter action buttons */
-            .filter-actions {
-                display: flex;
-                gap: 10px;
-                margin-top: 20px;
-                justify-content: flex-end;
-            }
-            
-            /* Filter toggle and theme buttons row */
-            .top-buttons-row {
-                display: flex;
-                gap: 10px;
-                margin-bottom: 15px;
+            .wa-empty-state-icon {
+                font-size: 80px;
+                margin-bottom: 20px;
+                opacity: 0.3;
             }
         </style>
         """
 
-# Apply CSS based on current theme
+# Apply CSS
 st.markdown(get_css(st.session_state.theme), unsafe_allow_html=True)
-
-# Header with logo
-logo_base64 = get_base64_logo()
-if logo_base64:
-    logo_html = f'<img src="data:image/png;base64,{logo_base64}" class="logo-img">'
-else:
-    # Fallback to external URL if Logo.png not found
-    logo_url = "https://drive.google.com/uc?export=view&id=1NSTzTZ_gusa-c4Sc5dZelth-Djft0Zca"
-    logo_html = f'<img src="{logo_url}" class="logo-img" onerror="this.style.display=\'none\'">'
-
-st.markdown(f"""
-<div class="main-header">
-    {logo_html}
-    <h1>WhatsApp Chat Inbox – Amirtharaj Investment</h1>
-</div>
-""", unsafe_allow_html=True)
-
-# Create a row for filter toggle and theme buttons
-col1, col2 = st.columns([1, 1])
-
-with col1:
-    # Filter toggle button
-    filter_icon = "▼" if st.session_state.show_filters else "▶"
-    if st.button(f"{filter_icon} Filters", key="toggle_filters", use_container_width=True):
-        st.session_state.show_filters = not st.session_state.show_filters
-        st.rerun()
-
-with col2:
-    # Theme toggle button
-    if st.session_state.theme == "dark":
-        if st.button("☀️ Light Mode", key="theme_toggle", use_container_width=True):
-            st.session_state.theme = "light"
-            st.rerun()
-    else:
-        if st.button("🌙 Dark Mode", key="theme_toggle", use_container_width=True):
-            st.session_state.theme = "dark"
-            st.rerun()
-
-# Filter section (dropdown)
-if st.session_state.show_filters:
-    st.markdown('<div class="filter-container">', unsafe_allow_html=True)
-    st.markdown('<div class="filter-header">', unsafe_allow_html=True)
-    st.markdown('<h3><span>🔍</span> Filter Options</h3>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    st.markdown('<div class="filter-content">', unsafe_allow_html=True)
-    
-    # Filter row 1: Phone and Name
-    col1, col2 = st.columns(2)
-    with col1:
-        st.session_state.filter_phone = st.text_input(
-            "📱 Phone Number",
-            value=st.session_state.filter_phone,
-            placeholder="Search by phone...",
-            key="filter_phone_input"
-        )
-    
-    with col2:
-        st.session_state.filter_name = st.text_input(
-            "👤 Client Name",
-            value=st.session_state.filter_name,
-            placeholder="Search by name...",
-            key="filter_name_input"
-        )
-    
-    # Filter row 2: Date
-    st.session_state.filter_by_date = st.checkbox(
-        "📅 Enable date filter",
-        value=st.session_state.filter_by_date,
-        key="filter_by_date_check"
-    )
-    
-    if st.session_state.filter_by_date:
-        st.session_state.filter_date = st.date_input(
-            "Select date",
-            value=st.session_state.filter_date,
-            key="filter_date_input"
-        )
-    
-    # Filter row 3: Time Range
-    st.session_state.filter_by_time = st.checkbox(
-        "🕐 Enable time filter",
-        value=st.session_state.filter_by_time,
-        key="filter_by_time_check"
-    )
-    
-    if st.session_state.filter_by_time:
-        col_time1, col_time2 = st.columns(2)
-        with col_time1:
-            st.session_state.filter_time_from = st.time_input(
-                "From time",
-                value=st.session_state.filter_time_from,
-                key="filter_time_from_input"
-            )
-        with col_time2:
-            st.session_state.filter_time_to = st.time_input(
-                "To time",
-                value=st.session_state.filter_time_to,
-                key="filter_time_to_input"
-            )
-    
-    # Filter row 4: Follow-up
-    st.session_state.filter_only_fu = st.checkbox(
-        "🔴 Show only follow-up clients",
-        value=st.session_state.filter_only_fu,
-        key="filter_only_fu_check"
-    )
-    
-    # Apply Filters button
-    st.markdown('<div class="filter-actions">', unsafe_allow_html=True)
-    if st.button("Apply Filters", use_container_width=True, type="primary"):
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)  # Close filter-actions
-    
-    st.markdown('</div>', unsafe_allow_html=True)  # Close filter-content
-    st.markdown('</div>', unsafe_allow_html=True)  # Close filter-container
 
 # Helper functions
 def fetch_contacts(only_follow_up: bool):
@@ -1080,19 +951,14 @@ def fetch_contacts(only_follow_up: bool):
         st.error(f"Error: {e}")
         return []
 
-
 def fetch_conversation(phone: str, limit: int = 50, offset: int = 0):
     try:
-        r = requests.get(
-            f"{API_BASE}/conversation/{phone}",
-            params={"limit": limit, "offset": offset}
-        )
+        r = requests.get(f"{API_BASE}/conversation/{phone}", params={"limit": limit, "offset": offset})
         r.raise_for_status()
         return r.json()
     except Exception as e:
         st.error(f"Error: {e}")
         return []
-
 
 def delete_conversation(phone: str):
     try:
@@ -1101,14 +967,12 @@ def delete_conversation(phone: str):
     except:
         return False
 
-
 def delete_message(msg_id: int):
     try:
         r = requests.delete(f"{API_BASE}/message/{msg_id}")
         return r.status_code == 200
     except:
         return False
-
 
 def filter_messages(messages, date_filter, time_from, time_to):
     if not date_filter and not time_from:
@@ -1125,27 +989,18 @@ def filter_messages(messages, date_filter, time_from, time_to):
         filtered.append(msg)
     return filtered
 
-
-def send_whatsapp_message(phone: str, message_text: str,
-                          msg_type: str = "text",
-                          template_name: str | None = None) -> bool:
-    """Send message to Make.com webhook which will handle WhatsApp API."""
+def send_whatsapp_message(phone: str, message_text: str, msg_type: str = "text", template_name: str | None = None) -> bool:
     if not MAKE_WEBHOOK_URL:
-        st.error("Make webhook URL not configured (set 'make_webhook_url' in Streamlit secrets).")
+        st.error("Make webhook URL not configured")
         return False
-
-    payload = {
-        "phone": phone,
-        "message": message_text,
-        "type": msg_type,  # 'text' or 'template'
-    }
+    
+    payload = {"phone": phone, "message": message_text, "type": msg_type}
     if msg_type == "template" and template_name:
         payload["template_name"] = template_name
-
+    
     try:
         r = requests.post(MAKE_WEBHOOK_URL, json=payload, timeout=15)
         if r.status_code in (200, 201, 202):
-            # Log the sent message to the backend database
             log_sent_message(phone, message_text, msg_type)
             return True
         else:
@@ -1155,9 +1010,7 @@ def send_whatsapp_message(phone: str, message_text: str,
         st.error(f"Send error: {e}")
         return False
 
-
 def log_sent_message(phone: str, message: str, msg_type: str = "text"):
-    """Log sent message to backend database"""
     try:
         payload = {
             "phone": phone,
@@ -1173,302 +1026,249 @@ def log_sent_message(phone: str, message: str, msg_type: str = "text"):
         response.raise_for_status()
         return True
     except Exception as e:
-        # Silently fail - don't disrupt the UI if logging fails
-        st.warning(f"Message sent but not logged in database: {e}")
+        st.warning(f"Message sent but not logged: {e}")
         return False
 
+def get_base64_logo():
+    logo_path = Path("Logo.png")
+    if logo_path.exists():
+        with open(logo_path, "rb") as f:
+            return base64.b64encode(f.read()).decode()
+    return None
 
-# Fetch and filter contacts using session state values
+# Initialize session state
+if "selected_phone" not in st.session_state:
+    st.session_state.selected_phone = ""
+if "conv_offset" not in st.session_state:
+    st.session_state.conv_offset = 0
+if "auto_refresh" not in st.session_state:
+    st.session_state.auto_refresh = True
+
+CONV_LIMIT = 20
+
+# Fetch and filter contacts
 contacts = fetch_contacts(st.session_state.filter_only_fu)
 if st.session_state.filter_phone:
     contacts = [c for c in contacts if st.session_state.filter_phone.lower() in c["phone"].lower()]
 if st.session_state.filter_name:
     contacts = [c for c in contacts if c.get("client_name") and st.session_state.filter_name.lower() in c["client_name"].lower()]
 
+# Main Header
+logo_base64 = get_base64_logo()
+if logo_base64:
+    logo_html = f'<img src="data:image/png;base64,{logo_base64}" class="wa-logo">'
+else:
+    logo_url = "https://drive.google.com/uc?export=view&id=1NSTzTZ_gusa-c4Sc5dZelth-Djft0Zca"
+    logo_html = f'<img src="{logo_url}" class="wa-logo">'
+
+theme_icon = "☀️" if st.session_state.theme == "dark" else "🌙"
+st.markdown(f"""
+<div class="wa-header">
+    {logo_html}
+    <h1 class="wa-header-title">Amirtharaj Investment – WhatsApp</h1>
+    <div class="wa-header-icons">
+        <span>💬</span>
+        <span>⋮</span>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# Theme toggle (outside main container)
+col_theme1, col_theme2 = st.columns([6, 1])
+with col_theme2:
+    if st.session_state.theme == "dark":
+        if st.button("☀️", key="theme_toggle"):
+            st.session_state.theme = "light"
+            st.rerun()
+    else:
+        if st.button("🌙", key="theme_toggle"):
+            st.session_state.theme = "dark"
+            st.rerun()
+
+# Main container
+st.markdown('<div class="wa-container">', unsafe_allow_html=True)
+
+# Sidebar - Contact List
+st.markdown('<div class="wa-sidebar">', unsafe_allow_html=True)
+
+# Search and filters
+st.markdown('<div class="wa-search-container">', unsafe_allow_html=True)
+filter_icon = "▼" if st.session_state.show_filters else "▶"
+if st.button(f"{filter_icon} Filters", key="toggle_filters"):
+    st.session_state.show_filters = not st.session_state.show_filters
+    st.rerun()
+
+if st.session_state.show_filters:
+    st.markdown('<div class="wa-filters">', unsafe_allow_html=True)
+    st.session_state.filter_phone = st.text_input("📱 Phone", value=st.session_state.filter_phone, placeholder="Search...")
+    st.session_state.filter_name = st.text_input("👤 Name", value=st.session_state.filter_name, placeholder="Search...")
+    st.session_state.filter_only_fu = st.checkbox("🔴 Follow-ups only", value=st.session_state.filter_only_fu)
+    if st.button("Apply"):
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Contacts list
+st.markdown('<div class="wa-contacts-list">', unsafe_allow_html=True)
+
 if not contacts:
-    st.info("🔍 No contacts found")
-    st.stop()
-
-# Initialize session state for selected phone
-if "selected_phone" not in st.session_state:
-    st.session_state.selected_phone = contacts[0]["phone"] if contacts else ""
-
-if "conv_offset" not in st.session_state:
-    st.session_state.conv_offset = 0
-
-if "last_message_count" not in st.session_state:
-    st.session_state.last_message_count = {}
-
-if "auto_refresh" not in st.session_state:
-    st.session_state.auto_refresh = True
-
-CONV_LIMIT = 20  # recommended
-
-# Layout
-col1, col2 = st.columns([1, 2.5])
-
-with col1:
-    st.markdown("### 💬 Contacts")
+    st.markdown('<div class="wa-empty-state"><div class="wa-empty-state-icon">💬</div><p>No contacts found</p></div>', unsafe_allow_html=True)
+else:
     for c in contacts:
         client_name = c["client_name"] or "Unknown"
         phone = c["phone"]
         is_selected = st.session_state.selected_phone == phone
-        fu_indicator = "🔴 " if c.get("follow_up_open") else ""
+        fu_indicator = '<span class="wa-fu-indicator">●</span>' if c.get("follow_up_open") else ""
         
-        if st.button(
-            f"{fu_indicator}{client_name}",
-            key=phone,
-            use_container_width=True,
-            type="primary" if is_selected else "secondary"
-        ):
-            # When switching contact, reset pagination and draft
+        # Get initials for avatar
+        initials = "".join([word[0].upper() for word in client_name.split()[:2]])
+        
+        active_class = "active" if is_selected else ""
+        
+        # WhatsApp-style contact card
+        if st.button(f"select_{phone}", key=phone, label_visibility="collapsed"):
             st.session_state.selected_phone = phone
             st.session_state.conv_offset = 0
             draft_key = f"new_msg_{phone}"
             if draft_key in st.session_state:
-                # Delete the key instead of setting to empty string
                 del st.session_state[draft_key]
             st.rerun()
-
-with col2:
-    phone = st.session_state.selected_phone
-    if not phone and contacts:
-        phone = contacts[0]["phone"]
-        st.session_state.selected_phone = phone
-    
-    selected = next((c for c in contacts if c["phone"] == phone), None) if phone else None
-    
-    if not selected:
-        st.info("📭 Select a contact to view messages")
-        st.stop()
-    
-    client_name = selected["client_name"] or phone
-    
-    # Auto-refresh toggle and logic
-    col_toggle1, col_toggle2 = st.columns([3, 1])
-    with col_toggle1:
-        pass
-    with col_toggle2:
-        auto_refresh = st.checkbox("🔄 Auto-refresh", value=st.session_state.auto_refresh, key="auto_refresh_toggle")
-        st.session_state.auto_refresh = auto_refresh
-    
-    # Auto-refresh script - checks for new messages every 5 seconds
-    if st.session_state.auto_refresh:
-        st.markdown("""
-        <script>
-            setTimeout(function() {
-                window.parent.location.reload();
-            }, 5000);
-        </script>
-        """, unsafe_allow_html=True)
-    
-    # Chat header + delete
-    col_h1, col_h2 = st.columns([6, 1])
-    with col_h1:
+        
         st.markdown(f"""
-        <div class="chat-header">
-            <div class="chat-header-info">
+        <div class="wa-contact {active_class}">
+            <div class="wa-contact-avatar">{initials}</div>
+            <div class="wa-contact-info">
+                <div class="wa-contact-header">
+                    <span class="wa-contact-name">{fu_indicator}{client_name}</span>
+                    <span class="wa-contact-time">12:45</span>
+                </div>
+                <div class="wa-contact-preview">
+                    <span>Latest message preview...</span>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+st.markdown('</div></div>', unsafe_allow_html=True)  # Close contacts-list and sidebar
+
+# Chat Area
+st.markdown('<div class="wa-chat-area">', unsafe_allow_html=True)
+
+phone = st.session_state.selected_phone
+if not phone and contacts:
+    phone = contacts[0]["phone"]
+    st.session_state.selected_phone = phone
+
+selected = next((c for c in contacts if c["phone"] == phone), None) if phone else None
+
+if not selected:
+    st.markdown('<div class="wa-empty-state"><div class="wa-empty-state-icon">💬</div><p>Select a contact to start chatting</p></div>', unsafe_allow_html=True)
+else:
+    client_name = selected["client_name"] or phone
+    initials = "".join([word[0].upper() for word in client_name.split()[:2]])
+    
+    # Chat header
+    st.markdown(f"""
+    <div class="wa-chat-header">
+        <div class="wa-chat-header-info">
+            <div class="wa-contact-avatar" style="width: 40px; height: 40px; font-size: 16px;">{initials}</div>
+            <div class="wa-chat-header-text">
                 <h3>{client_name}</h3>
                 <p>{phone}</p>
             </div>
         </div>
-        """, unsafe_allow_html=True)
-    with col_h2:
-        if st.button("🗑️ Delete All", key="del_all"):
-            if st.session_state.get('confirm_del'):
-                if delete_conversation(phone):
-                    st.success("Deleted!")
-                    st.session_state.pop('confirm_del', None)
-                    st.rerun()
-            else:
-                st.session_state.confirm_del = True
-                st.warning("Click again")
+        <div class="wa-chat-header-actions">
+            <span>🔍</span>
+            <span>⋮</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
     
-    # Search inside conversation
-    search_query = st.text_input(
-        "Search in this chat",
-        placeholder="Type to search messages...",
-        key="search_conv"
-    )
-    
-    # Fetch messages with pagination
+    # Fetch conversation
     conv = fetch_conversation(phone, limit=CONV_LIMIT, offset=st.session_state.conv_offset)
-    
-    # Apply date and time filters to messages
     date_filter = st.session_state.filter_date if st.session_state.filter_by_date else None
     time_from = st.session_state.filter_time_from if st.session_state.filter_by_time else None
     time_to = st.session_state.filter_time_to if st.session_state.filter_by_time else None
     conv = filter_messages(conv, date_filter, time_from, time_to)
-    
-    # Sort messages by timestamp (oldest first) so new messages appear at bottom
     conv.sort(key=lambda x: datetime.fromisoformat(x["timestamp"]), reverse=False)
     
-    # Unread badge (based on follow_up_needed in current page)
-    unread_count = sum(1 for m in conv if m.get("follow_up_needed"))
-    if unread_count > 0:
-        st.markdown(f"<p class='unread-badge'>🔴 {unread_count} unread messages</p>", unsafe_allow_html=True)
+    # Messages area
+    st.markdown('<div class="wa-messages">', unsafe_allow_html=True)
     
     if not conv:
-        st.info("📭 No messages")
+        st.markdown('<div class="wa-empty-state"><p>No messages yet</p></div>', unsafe_allow_html=True)
     else:
-        # Chat area with border
-        st.markdown('<div class="chat-area">', unsafe_allow_html=True)
-        
         for msg in conv:
             ts = datetime.fromisoformat(msg["timestamp"])
-            direction = "user" if msg["direction"] in ["user", "incoming"] else "bot"
+            direction = "incoming" if msg["direction"] in ["user", "incoming"] else "outgoing"
             
-            # Determine if it's from chatbot or dashboard user
-            sender_type = ""
-            sender_badge = ""
-            if direction == "bot":
-                handled_by = msg.get("handled_by", "")
-                if handled_by and "Dashboard" in handled_by:
-                    sender_type = "dashboard"
-                    sender_badge = '<div class="sender-badge dashboard">📱 Dashboard User</div>'
-                else:
-                    sender_type = "chatbot"
-                    sender_badge = '<div class="sender-badge chatbot">🤖 Chatbot</div>'
+            message_text = (msg["message"] or "").replace("\n", "<br>")
             
-            bubble_class = f"{direction} {sender_type}".strip()
+            # WhatsApp checkmark for outgoing messages
+            checkmark = '<span class="wa-checkmark">✓✓</span>' if direction == "outgoing" else ""
             
-            raw_text = msg["message"] or ""
-            
-            # First, escape HTML special characters to prevent them from being rendered
-            import html
-            display_text = html.escape(raw_text)
-            
-            # Highlight search matches
-            if search_query:
-                pattern = re.escape(search_query)
-                def repl(m):
-                    return f"<span class='highlight'>{m.group(0)}</span>"
-                display_text = re.sub(pattern, repl, display_text, flags=re.IGNORECASE)
-            
-            # Replace newlines with <br>
-            display_text = display_text.replace("\n", "<br>")
-            
-            message_html = f"""
-            <div class="message-row {direction}">
-                <div class="message-bubble {bubble_class}">
-                    {sender_badge}
-                    <div class="message-text">{display_text}</div>
-                    <div class="message-time">{ts.strftime("%H:%M")}</div>
-            """
-            
+            meta_html = ""
             if msg.get("follow_up_needed"):
-                message_html += '<div class="message-meta">🔴 Follow-up needed</div>'
+                meta_html += '<div class="wa-message-meta">🔴 Follow-up needed</div>'
             if msg.get("notes"):
-                message_html += f'<div class="message-meta">📝 {msg["notes"]}</div>'
-            if msg.get("handled_by"):
-                message_html += f'<div class="message-meta">👤 {msg["handled_by"]}</div>'
+                meta_html += f'<div class="wa-message-meta">📝 {msg["notes"]}</div>'
             
-            message_html += "</div></div>"
-            st.markdown(message_html, unsafe_allow_html=True)
-        
-        st.markdown('</div>', unsafe_allow_html=True)  # Close chat-area
-        
-        # Pagination controls with centered info
-        st.markdown('<div class="pagination-section">', unsafe_allow_html=True)
-        col_p1, col_p2, col_p3 = st.columns([1, 2, 1])
-
-        # Prev button – only disabled on first page
-        with col_p1:
-            prev_disabled = st.session_state.conv_offset == 0
-            if st.button("⬅️ Prev", disabled=prev_disabled):
-                st.session_state.conv_offset = max(0, st.session_state.conv_offset - CONV_LIMIT)
-                st.rerun()
-
-        # Info text in center
-        with col_p2:
-            start_idx = st.session_state.conv_offset + 1 if conv else 0
-            end_idx = st.session_state.conv_offset + len(conv)
-            st.markdown(f'<p class="pagination-info">Showing messages {start_idx}–{end_idx}</p>', unsafe_allow_html=True)
-
-        # Next button – always allowed, backend decides if more exist
-        with col_p3:
-            if st.button("Next ➡️"):
-                st.session_state.conv_offset += CONV_LIMIT
-                st.rerun()
-        
-        st.markdown('</div>', unsafe_allow_html=True)  # Close pagination-section
-        
-        # --- Send Message section ---
-        st.markdown('<div class="send-section">', unsafe_allow_html=True)
-        st.markdown("### ✉️ Send Message")
-        col_s1, col_s2 = st.columns([3, 1])
-
-        draft_key = f"new_msg_{phone}"
-        type_key = f"msg_type_{phone}"
-        tmpl_key = f"tmpl_{phone}"
-
-        with col_s1:
-            # Use value parameter with get() to handle missing key gracefully
-            new_msg = st.text_area(
-                "Message",
-                value=st.session_state.get(draft_key, ""),
-                placeholder="Type a WhatsApp message to send...",
-                key=draft_key,
-                height=80
-            )
-
-        with col_s2:
-            msg_type_label = st.radio(
-                "Type",
-                ["Text", "Template"],
-                key=type_key
-            )
-            template_name = None
-            if msg_type_label == "Template":
-                template_name = st.text_input(
-                    "Template name",
-                    placeholder="e.g. sip_followup_1",
-                    key=tmpl_key
-                )
-
-        if st.button("📨 Send via WhatsApp", use_container_width=True, key=f"send_{phone}"):
+            st.markdown(f"""
+            <div class="wa-message-wrapper {direction}">
+                <div class="wa-message {direction}">
+                    <div class="wa-message-text">{message_text}</div>
+                    <div class="wa-message-footer">
+                        <span class="wa-message-time">{ts.strftime("%H:%M")}</span>
+                        {checkmark}
+                    </div>
+                    {meta_html}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)  # Close wa-messages
+    
+    # Input area (WhatsApp style)
+    st.markdown('<div class="wa-input-area">', unsafe_allow_html=True)
+    
+    draft_key = f"new_msg_{phone}"
+    
+    col_input, col_send = st.columns([6, 1])
+    with col_input:
+        new_msg = st.text_area(
+            "Message",
+            value=st.session_state.get(draft_key, ""),
+            placeholder="Type a message",
+            key=draft_key,
+            height=50,
+            label_visibility="collapsed"
+        )
+    
+    with col_send:
+        if st.button("📤", key=f"send_{phone}"):
             msg_clean = (new_msg or "").strip()
-            if not msg_clean:
-                st.warning("Message cannot be empty.")
-            else:
-                msg_type = "template" if msg_type_label == "Template" else "text"
-                ok = send_whatsapp_message(phone, msg_clean, msg_type, template_name)
+            if msg_clean:
+                ok = send_whatsapp_message(phone, msg_clean, "text")
                 if ok:
-                    st.success("Message sent ✅")
-                    # Clear draft by deleting the key instead of setting to empty string
+                    st.success("Sent!")
                     if draft_key in st.session_state:
                         del st.session_state[draft_key]
-                    # Wait a moment for the message to be logged
                     import time
                     time.sleep(0.5)
                     st.rerun()
-        
-        st.markdown('</div>', unsafe_allow_html=True)  # Close send-section
-        
-        # Update section - use the first message (oldest) in sorted list for update
-        update_msg = conv[0] if conv else None
-        
-        if update_msg:
-            st.markdown('<div class="update-section">', unsafe_allow_html=True)
-            st.markdown("### 📝 Update Follow-up Status")
-            
-            col_u1, col_u2 = st.columns(2)
-            with col_u1:
-                fu_flag = st.checkbox("🔴 Follow-up needed", value=update_msg.get("follow_up_needed", False))
-            with col_u2:
-                handler = st.text_input("👤 Handled by", value=update_msg.get("handled_by") or "")
-            
-            notes = st.text_area("📝 Notes", value=update_msg.get("notes") or "")
-            
-            if st.button("💾 Save Follow-up", use_container_width=True):
-                resp = requests.patch(
-                    f"{API_BASE}/message/{update_msg['id']}",
-                    json={"follow_up_needed": fu_flag, "notes": notes, "handled_by": handler}
-                )
-                if resp.status_code == 200:
-                    st.success("✅ Saved!")
-                    st.rerun()
-                else:
-                    st.error(f"Error: {resp.text}")
-            
-            st.markdown('</div>', unsafe_allow_html=True)  # Close update-section
+    
+    st.markdown('</div>', unsafe_allow_html=True)  # Close wa-input-area
+
+st.markdown('</div>', unsafe_allow_html=True)  # Close wa-chat-area
+st.markdown('</div>', unsafe_allow_html=True)  # Close wa-container
+
+# Auto-refresh
+if st.session_state.auto_refresh:
+    st.markdown("""
+    <script>
+        setTimeout(function() {
+            window.parent.location.reload();
+        }, 5000);
+    </script>
+    """, unsafe_allow_html=True)
