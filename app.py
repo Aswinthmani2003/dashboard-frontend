@@ -332,6 +332,8 @@ def get_css(theme):
                 padding: 20px 16px;
                 min-height: calc(100vh - 240px);
                 position: relative;
+                overflow-y: auto;
+                max-height: 600px;
             }
             
             .chat-container::before {
@@ -909,6 +911,8 @@ def get_css(theme):
                 padding: 20px 16px;
                 min-height: calc(100vh - 240px);
                 position: relative;
+                overflow-y: auto;
+                max-height: 600px;
             }
             
             .chat-container::before {
@@ -1343,27 +1347,24 @@ if st.session_state.show_filters:
 def convert_to_ist(timestamp_str: str) -> datetime:
     """Convert ISO timestamp string to IST datetime object"""
     try:
-        # Handle different timestamp formats
-        if timestamp_str is None:
+        if not timestamp_str:
             return datetime.now(IST)
         
-        # Remove timezone info if present
-        if 'Z' in timestamp_str:
-            timestamp_str = timestamp_str.replace('Z', '+00:00')
+        # Clean the timestamp string
+        timestamp_str = str(timestamp_str).replace('Z', '+00:00')
         
-        # Parse the timestamp
-        if '+' in timestamp_str or '-' in timestamp_str[-6:]:
-            # Has timezone info
+        # Try parsing with different formats
+        try:
             dt = datetime.fromisoformat(timestamp_str)
-        else:
-            # No timezone, assume UTC
-            dt = datetime.fromisoformat(timestamp_str)
-            dt = pytz.utc.localize(dt)
+        except:
+            # Try parsing as UTC timestamp
+            dt = datetime.strptime(timestamp_str, "%Y-%m-%dT%H:%M:%S.%f%z")
         
-        # Convert to IST
+        # If no timezone, assume UTC
         if dt.tzinfo is None:
             dt = pytz.utc.localize(dt)
         
+        # Convert to IST
         ist_dt = dt.astimezone(IST)
         return ist_dt
     except Exception as e:
@@ -1428,48 +1429,10 @@ def fetch_contacts(only_follow_up: bool):
     """Fetch contacts from backend API"""
     try:
         r = requests.get(f"{API_BASE}/contacts", params={"only_follow_up": only_follow_up}, timeout=10)
-        r.raise_for_status()
-        contacts_data = r.json()
-        
-        # Get conversation for each contact to get last message time
-        for contact in contacts_data:
-            phone = contact.get("phone")
-            if not phone:
-                contact["last_message_time"] = None
-                contact["last_message_preview"] = "No messages yet"
-                continue
-                
-            try:
-                # Fetch the last message for preview
-                conv_response = requests.get(
-                    f"{API_BASE}/conversation",
-                    params={"phone": phone, "limit": 1, "offset": 0},
-                    timeout=10
-                )
-                
-                if conv_response.status_code == 200:
-                    conv = conv_response.json()
-                    if conv and len(conv) > 0:
-                        contact["last_message_time"] = conv[0].get("timestamp")
-                        preview = conv[0].get("message", "")
-                        if preview:
-                            # Escape HTML and truncate
-                            preview = html.escape(preview)
-                            contact["last_message_preview"] = preview[:30] + "..." if len(preview) > 30 else preview
-                        else:
-                            contact["last_message_preview"] = "No message text"
-                    else:
-                        contact["last_message_time"] = None
-                        contact["last_message_preview"] = "No messages yet"
-                else:
-                    contact["last_message_time"] = None
-                    contact["last_message_preview"] = "No messages yet"
-                    
-            except Exception as e:
-                contact["last_message_time"] = None
-                contact["last_message_preview"] = "No messages yet"
-        
-        return contacts_data
+        if r.status_code != 200:
+            st.error(f"Failed to fetch contacts: HTTP {r.status_code}")
+            return []
+        return r.json()
     except Exception as e:
         st.error(f"Error fetching contacts: {e}")
         return []
@@ -1478,26 +1441,36 @@ def fetch_contacts(only_follow_up: bool):
 def fetch_conversation(phone: str, limit: int = 50, offset: int = 0):
     """Fetch conversation for a specific phone number"""
     try:
-        if not phone or phone == "":
-            return []
-            
-        r = requests.get(
-            f"{API_BASE}/conversation",
-            params={"phone": phone, "limit": limit, "offset": offset},
-            timeout=10
-        )
-        
-        if r.status_code == 404:
-            # No conversation found, return empty list
+        if not phone:
             return []
         
-        r.raise_for_status()
-        return r.json()
-    except requests.exceptions.HTTPError as e:
-        if e.response.status_code == 404:
-            return []
-        st.error(f"Error fetching conversation: {e}")
+        # Try multiple endpoint formats
+        endpoints_to_try = [
+            f"{API_BASE}/conversation/{phone}",
+            f"{API_BASE}/conversation?phone={phone}"
+        ]
+        
+        for endpoint in endpoints_to_try:
+            try:
+                params = {"limit": limit, "offset": offset}
+                if "?" in endpoint:  # If using query parameter format
+                    # Don't add phone to params since it's already in URL
+                    pass
+                
+                r = requests.get(endpoint, params=params, timeout=10)
+                
+                if r.status_code == 200:
+                    return r.json()
+                elif r.status_code == 404:
+                    # Try next endpoint
+                    continue
+                    
+            except Exception as e:
+                continue
+        
+        # If all endpoints failed, return empty list
         return []
+        
     except Exception as e:
         st.error(f"Error fetching conversation: {e}")
         return []
@@ -1524,14 +1497,17 @@ def filter_messages(messages, date_filter, time_from, time_to):
         return messages
     filtered = []
     for msg in messages:
-        msg_dt = convert_to_ist(msg["timestamp"])
-        if date_filter and msg_dt.date() != date_filter:
-            continue
-        if time_from and time_to:
-            msg_time = msg_dt.time()
-            if not (time_from <= msg_time <= time_to):
+        try:
+            msg_dt = convert_to_ist(msg["timestamp"])
+            if date_filter and msg_dt.date() != date_filter:
                 continue
-        filtered.append(msg)
+            if time_from and time_to:
+                msg_time = msg_dt.time()
+                if not (time_from <= msg_time <= time_to):
+                    continue
+            filtered.append(msg)
+        except:
+            continue
     return filtered
 
 
@@ -1598,16 +1574,18 @@ try:
         contacts = [c for c in contacts if c.get("client_name") and st.session_state.filter_name.lower() in c["client_name"].lower()]
     
     # Sort contacts by last message time (most recent first)
-    def get_sort_time(contact):
-        ts = contact.get("last_message_time")
-        if ts:
-            try:
-                return convert_to_ist(ts)
-            except:
-                return datetime.min.replace(tzinfo=IST)
+    def get_last_message_time(contact):
+        try:
+            phone = contact.get("phone")
+            if phone:
+                conv = fetch_conversation(phone, limit=1)
+                if conv and len(conv) > 0:
+                    return convert_to_ist(conv[0].get("timestamp"))
+        except:
+            pass
         return datetime.min.replace(tzinfo=IST)
     
-    contacts.sort(key=get_sort_time, reverse=True)
+    contacts.sort(key=get_last_message_time, reverse=True)
     
 except Exception as e:
     st.error(f"Error loading contacts: {e}")
@@ -1659,7 +1637,18 @@ with col1:
         phone = c.get("phone", "")
         is_selected = st.session_state.selected_phone == phone
         
-        # Calculate unread messages for this contact
+        # Get last message preview
+        last_message_preview = "No messages yet"
+        try:
+            conv = fetch_conversation(phone, limit=1)
+            if conv and len(conv) > 0:
+                last_msg = conv[0].get("message", "")
+                if last_msg:
+                    last_message_preview = html.escape(last_msg[:30]) + ("..." if len(last_msg) > 30 else "")
+        except:
+            pass
+        
+        # Calculate unread messages
         try:
             conv = fetch_conversation(phone, limit=50)
             unread_count = sum(1 for msg in conv if msg.get("follow_up_needed"))
@@ -1672,8 +1661,12 @@ with col1:
         
         # Format last message time
         last_time = ""
-        if c.get("last_message_time"):
-            last_time = format_contact_time(c["last_message_time"])
+        try:
+            conv = fetch_conversation(phone, limit=1)
+            if conv and len(conv) > 0:
+                last_time = format_contact_time(conv[0].get("timestamp"))
+        except:
+            pass
         
         # Create contact card HTML
         contact_html = f"""
@@ -1681,7 +1674,7 @@ with col1:
             <div class="contact-avatar avatar-color-{color_index}">{initials}</div>
             <div class="contact-info">
                 <div class="contact-name">{html.escape(client_name)}</div>
-                <div class="contact-preview">{c.get('last_message_preview', '')}</div>
+                <div class="contact-preview">{last_message_preview}</div>
             </div>
             <div class="contact-meta">
                 <div class="contact-time">{last_time}</div>
@@ -1788,78 +1781,81 @@ with col2:
     if unread_count > 0:
         st.markdown(f'<div style="color: #ff3b30; font-size: 13px; margin: 0 0 10px 20px;">🔴 {unread_count} unread messages</div>', unsafe_allow_html=True)
     
-    # WhatsApp chat container
-    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+    # WhatsApp chat container - using st.container to keep messages inside
+    chat_container = st.container()
     
-    if not conv:
-        st.info("📭 No messages yet")
-    else:
-        # Group messages by date
-        current_date = None
-        for msg in conv:
-            msg_dt = convert_to_ist(msg["timestamp"])
-            msg_date = msg_dt.date()
-            
-            # Show date separator if date changed
-            if current_date != msg_date:
-                current_date = msg_date
-                today = datetime.now(IST).date()
+    with chat_container:
+        st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+        
+        if not conv:
+            st.info("📭 No messages yet")
+        else:
+            # Group messages by date
+            current_date = None
+            for msg in conv:
+                msg_dt = convert_to_ist(msg["timestamp"])
+                msg_date = msg_dt.date()
                 
-                if msg_date == today:
-                    date_label = "Today"
-                elif msg_date == today - timedelta(days=1):
-                    date_label = "Yesterday"
-                else:
-                    date_label = msg_dt.strftime("%B %d, %Y")
+                # Show date separator if date changed
+                if current_date != msg_date:
+                    current_date = msg_date
+                    today = datetime.now(IST).date()
+                    
+                    if msg_date == today:
+                        date_label = "Today"
+                    elif msg_date == today - timedelta(days=1):
+                        date_label = "Yesterday"
+                    else:
+                        date_label = msg_dt.strftime("%B %d, %Y")
+                    
+                    st.markdown(f'<div style="text-align: center; margin: 16px 0; color: #8696a0; font-size: 12px;">{date_label}</div>', unsafe_allow_html=True)
                 
-                st.markdown(f'<div style="text-align: center; margin: 16px 0; color: #8696a0; font-size: 12px;">{date_label}</div>', unsafe_allow_html=True)
-            
-            direction = "user" if msg.get("direction") in ["user", "incoming"] else "bot"
-            
-            raw_text = msg.get("message", "")
-            # Escape HTML to prevent rendering
-            raw_text = html.escape(raw_text)
-            display_text = raw_text
-            
-            if search_query:
-                pattern = re.escape(search_query)
-                def repl(m):
-                    return f'<span style="background-color: #ffd700; padding: 0 1px; border-radius: 2px;">{html.escape(m.group(0))}</span>'
-                try:
-                    display_text = re.sub(pattern, repl, display_text, flags=re.IGNORECASE)
-                except:
-                    pass
-            
-            display_text = display_text.replace("\n", "<br>")
-            
-            # Format message time
-            msg_time = format_message_time(msg["timestamp"])
-            
-            # Build message HTML
-            message_html = f"""
-            <div class="message-row {direction}">
-                <div class="message-bubble {direction}">
-                    <div class="message-text">{display_text}</div>
-                    <div class="message-time">
-                        {msg_time}
-                        <span class="message-meta">
-                            {'<span class="message-status delivered">✓✓</span>' if direction == 'bot' else ''}
-                            {'🔴' if msg.get('follow_up_needed') else ''}
-                        </span>
-                    </div>
-            """
-            
-            if msg.get("notes"):
-                notes_text = html.escape(msg["notes"])
-                message_html += f'<div style="font-size: 11px; color: rgba(255, 255, 255, 0.6); margin-top: 4px; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 2px;">📝 {notes_text}</div>'
-            if msg.get("handled_by"):
-                handler_text = html.escape(msg["handled_by"])
-                message_html += f'<div style="font-size: 11px; color: rgba(255, 255, 255, 0.6);">👤 {handler_text}</div>'
-            
-            message_html += "</div></div>"
-            st.markdown(message_html, unsafe_allow_html=True)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
+                direction = "user" if msg.get("direction") in ["user", "incoming"] else "bot"
+                
+                raw_text = msg.get("message", "")
+                # Escape HTML to prevent rendering
+                raw_text = html.escape(raw_text)
+                display_text = raw_text
+                
+                if search_query and search_query.strip():
+                    pattern = re.escape(search_query.strip())
+                    def repl(m):
+                        return f'<span style="background-color: #ffd700; padding: 0 1px; border-radius: 2px;">{html.escape(m.group(0))}</span>'
+                    try:
+                        display_text = re.sub(pattern, repl, display_text, flags=re.IGNORECASE)
+                    except:
+                        pass
+                
+                display_text = display_text.replace("\n", "<br>")
+                
+                # Format message time
+                msg_time = format_message_time(msg["timestamp"])
+                
+                # Build message HTML
+                message_html = f"""
+                <div class="message-row {direction}">
+                    <div class="message-bubble {direction}">
+                        <div class="message-text">{display_text}</div>
+                        <div class="message-time">
+                            {msg_time}
+                            <span class="message-meta">
+                                {'<span class="message-status delivered">✓✓</span>' if direction == 'bot' else ''}
+                                {'🔴' if msg.get('follow_up_needed') else ''}
+                            </span>
+                        </div>
+                """
+                
+                if msg.get("notes"):
+                    notes_text = html.escape(msg["notes"])
+                    message_html += f'<div style="font-size: 11px; color: rgba(255, 255, 255, 0.6); margin-top: 4px; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 2px;">📝 {notes_text}</div>'
+                if msg.get("handled_by"):
+                    handler_text = html.escape(msg["handled_by"])
+                    message_html += f'<div style="font-size: 11px; color: rgba(255, 255, 255, 0.6);">👤 {handler_text}</div>'
+                
+                message_html += "</div></div>"
+                st.markdown(message_html, unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
     
     # Pagination
     st.markdown('<div class="pagination-section">', unsafe_allow_html=True)
