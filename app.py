@@ -1645,120 +1645,120 @@ st.markdown('<div class="messages-area" id="chat-messages">', unsafe_allow_html=
     
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # Auto-scroll to bottom
-    st.markdown("""
-    <script>
-        setTimeout(function() {
-            var chatArea = document.getElementById('chat-messages');
-            if (chatArea) {
-                chatArea.scrollTop = chatArea.scrollHeight;
-            }
-        }, 100);
-    </script>
-    """, unsafe_allow_html=True)
+# Auto-scroll to bottom
+st.markdown("""
+<script>
+    setTimeout(function() {
+        var chatArea = document.getElementById('chat-messages');
+        if (chatArea) {
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+    }, 100);
+</script>
+""", unsafe_allow_html=True)
+
+# Pagination
+st.markdown('<div class="pagination-section">', unsafe_allow_html=True)
+col_p1, col_p2, col_p3 = st.columns([1, 2, 1])
+
+with col_p1:
+    prev_disabled = st.session_state.conv_offset == 0
+    if st.button("⬅️ Previous", disabled=prev_disabled):
+        st.session_state.conv_offset = max(0, st.session_state.conv_offset - CONV_LIMIT)
+        st.rerun()
+
+with col_p2:
+    start_idx = st.session_state.conv_offset + 1 if conv else 0
+    end_idx = st.session_state.conv_offset + len(conv)
+    st.markdown(f'<p class="pagination-info">Messages {start_idx}–{end_idx}</p>', unsafe_allow_html=True)
+
+with col_p3:
+    if st.button("Next ➡️"):
+        st.session_state.conv_offset += CONV_LIMIT
+        st.rerun()
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Message input area
+st.markdown('<div class="message-input-area">', unsafe_allow_html=True)
+
+draft_key = f"new_msg_{phone}"
+type_key = f"msg_type_{phone}"
+tmpl_key = f"tmpl_{phone}"
+
+col_input1, col_input2 = st.columns([3, 1])
+
+with col_input1:
+    new_msg = st.text_area(
+        "Message",
+        value=st.session_state.get(draft_key, ""),
+        placeholder="Type a message...",
+        key=draft_key,
+        height=60,
+        label_visibility="collapsed"
+    )
+
+with col_input2:
+    msg_type_label = st.radio(
+        "Type",
+        ["Text", "Template"],
+        key=type_key,
+        horizontal=False
+    )
     
-    # Pagination
-    st.markdown('<div class="pagination-section">', unsafe_allow_html=True)
-    col_p1, col_p2, col_p3 = st.columns([1, 2, 1])
-    
-    with col_p1:
-        prev_disabled = st.session_state.conv_offset == 0
-        if st.button("⬅️ Previous", disabled=prev_disabled):
-            st.session_state.conv_offset = max(0, st.session_state.conv_offset - CONV_LIMIT)
-            st.rerun()
-    
-    with col_p2:
-        start_idx = st.session_state.conv_offset + 1 if conv else 0
-        end_idx = st.session_state.conv_offset + len(conv)
-        st.markdown(f'<p class="pagination-info">Messages {start_idx}–{end_idx}</p>', unsafe_allow_html=True)
-    
-    with col_p3:
-        if st.button("Next ➡️"):
-            st.session_state.conv_offset += CONV_LIMIT
-            st.rerun()
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Message input area
-    st.markdown('<div class="message-input-area">', unsafe_allow_html=True)
-    
-    draft_key = f"new_msg_{phone}"
-    type_key = f"msg_type_{phone}"
-    tmpl_key = f"tmpl_{phone}"
-    
-    col_input1, col_input2 = st.columns([3, 1])
-    
-    with col_input1:
-        new_msg = st.text_area(
-            "Message",
-            value=st.session_state.get(draft_key, ""),
-            placeholder="Type a message...",
-            key=draft_key,
-            height=60,
+    if msg_type_label == "Template":
+        template_name = st.text_input(
+            "Template",
+            placeholder="Template name",
+            key=tmpl_key,
             label_visibility="collapsed"
         )
+    else:
+        template_name = None
+
+if st.button("📤 Send", use_container_width=True, key=f"send_{phone}"):
+    msg_clean = (new_msg or "").strip()
+    if not msg_clean:
+        st.warning("Please type a message")
+    else:
+        msg_type = "template" if msg_type_label == "Template" else "text"
+        ok = send_whatsapp_message(phone, msg_clean, msg_type, template_name)
+        if ok:
+            st.success("✅ Message sent!")
+            if draft_key in st.session_state:
+                del st.session_state[draft_key]
+            import time
+            time.sleep(0.5)
+            st.rerun()
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Update section
+update_msg = conv[0] if conv else None
+
+if update_msg:
+    st.markdown('<div class="update-section">', unsafe_allow_html=True)
+    st.markdown("### 📝 Update Status")
     
-    with col_input2:
-        msg_type_label = st.radio(
-            "Type",
-            ["Text", "Template"],
-            key=type_key,
-            horizontal=False
+    col_u1, col_u2 = st.columns(2)
+    with col_u1:
+        fu_flag = st.checkbox("🔴 Follow-up needed", value=update_msg.get("follow_up_needed", False))
+    with col_u2:
+        handler = st.text_input("👤 Handled by", value=update_msg.get("handled_by") or "")
+    
+    notes = st.text_area("📝 Notes", value=update_msg.get("notes") or "", height=60)
+    
+    if st.button("💾 Save", use_container_width=True):
+        resp = requests.patch(
+            f"{API_BASE}/message/{update_msg['id']}",
+            json={"follow_up_needed": fu_flag, "notes": notes, "handled_by": handler}
         )
-        
-        if msg_type_label == "Template":
-            template_name = st.text_input(
-                "Template",
-                placeholder="Template name",
-                key=tmpl_key,
-                label_visibility="collapsed"
-            )
+        if resp.status_code == 200:
+            st.success("✅ Updated!")
+            st.rerun()
         else:
-            template_name = None
-    
-    if st.button("📤 Send", use_container_width=True, key=f"send_{phone}"):
-        msg_clean = (new_msg or "").strip()
-        if not msg_clean:
-            st.warning("Please type a message")
-        else:
-            msg_type = "template" if msg_type_label == "Template" else "text"
-            ok = send_whatsapp_message(phone, msg_clean, msg_type, template_name)
-            if ok:
-                st.success("✅ Message sent!")
-                if draft_key in st.session_state:
-                    del st.session_state[draft_key]
-                import time
-                time.sleep(0.5)
-                st.rerun()
+            st.error(f"Error: {resp.text}")
     
     st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Update section
-    update_msg = conv[0] if conv else None
-    
-    if update_msg:
-        st.markdown('<div class="update-section">', unsafe_allow_html=True)
-        st.markdown("### 📝 Update Status")
-        
-        col_u1, col_u2 = st.columns(2)
-        with col_u1:
-            fu_flag = st.checkbox("🔴 Follow-up needed", value=update_msg.get("follow_up_needed", False))
-        with col_u2:
-            handler = st.text_input("👤 Handled by", value=update_msg.get("handled_by") or "")
-        
-        notes = st.text_area("📝 Notes", value=update_msg.get("notes") or "", height=60)
-        
-        if st.button("💾 Save", use_container_width=True):
-            resp = requests.patch(
-                f"{API_BASE}/message/{update_msg['id']}",
-                json={"follow_up_needed": fu_flag, "notes": notes, "handled_by": handler}
-            )
-            if resp.status_code == 200:
-                st.success("✅ Updated!")
-                st.rerun()
-            else:
-                st.error(f"Error: {resp.text}")
-        
-        st.markdown('</div>', unsafe_allow_html=True)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
+
+st.markdown('</div>', unsafe_allow_html=True)
