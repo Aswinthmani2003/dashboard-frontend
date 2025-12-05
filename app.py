@@ -10,15 +10,14 @@ import time as time_module
 
 API_BASE = "https://dashboard-backend-qqmi.onrender.com"
 MAKE_WEBHOOK_URL = st.secrets.get("make_webhook_url", "")
+MONGO_API_BASE = "https://mongodb-api-backend.onrender.com"  # Add your MongoDB API base URL
 
 # Define IST timezone
 IST = pytz.timezone('Asia/Kolkata')
 
 def check_password():
     """Simple password gate using Streamlit secrets"""
-
     def password_entered():
-        """Checks whether the password entered by the user is correct."""
         if st.session_state["password"] == st.secrets["dashboard_password"]:
             st.session_state["password_correct"] = True
             del st.session_state["password"]
@@ -64,6 +63,8 @@ if "filter_only_fu" not in st.session_state:
     st.session_state.filter_only_fu = False
 if "show_filters" not in st.session_state:
     st.session_state.show_filters = False
+if "client_automation_status" not in st.session_state:
+    st.session_state.client_automation_status = {}
 
 def get_base64_logo():
     """Load logo.png and convert to base64 for embedding"""
@@ -84,14 +85,12 @@ def get_css(theme):
                 padding: 0 !important;
             }
             
-            /* Remove default padding */
             .block-container {
                 padding-top: 0 !important;
                 padding-bottom: 0 !important;
                 max-width: 100% !important;
             }
             
-            /* WhatsApp Header */
             .main-header {
                 background: #202c33;
                 padding: 10px 16px;
@@ -122,7 +121,6 @@ def get_css(theme):
                 border: 1px solid #2a3942;
             }
             
-            /* Filter section */
             .filter-container {
                 background-color: #111b21;
                 border: 1px solid #2a3942;
@@ -177,7 +175,6 @@ def get_css(theme):
                 font-weight: 400;
             }
             
-            /* WhatsApp Sidebar Contacts */
             .contact-card {
                 background-color: transparent;
                 padding: 12px;
@@ -266,7 +263,23 @@ def get_css(theme):
                 margin-left: auto;
             }
             
-            /* WhatsApp Chat Header */
+            .automation-status {
+                font-size: 11px;
+                padding: 2px 6px;
+                border-radius: 4px;
+                margin-top: 2px;
+            }
+            
+            .automation-on {
+                background-color: #00a884;
+                color: white;
+            }
+            
+            .automation-off {
+                background-color: #dc3545;
+                color: white;
+            }
+            
             .chat-header {
                 background: #202c33;
                 padding: 10px 16px;
@@ -315,11 +328,10 @@ def get_css(theme):
             
             .chat-header-actions {
                 display: flex;
-                gap: 20px;
+                gap: 10px;
                 align-items: center;
             }
             
-            /* WhatsApp Chat Area */
             .chat-container {
                 background: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
                 background-size: contain;
@@ -342,7 +354,6 @@ def get_css(theme):
                 pointer-events: none;
             }
             
-            /* WhatsApp Message Bubbles */
             .message-row {
                 display: flex;
                 margin-bottom: 8px;
@@ -433,7 +444,6 @@ def get_css(theme):
             .message-status.delivered { color: #8696a0; }
             .message-status.read { color: #53bdeb; }
             
-            /* WhatsApp Input Area */
             .input-area {
                 background: #202c33;
                 padding: 10px 16px;
@@ -443,7 +453,6 @@ def get_css(theme):
                 z-index: 100;
             }
             
-            /* Update section */
             .update-section {
                 background-color: #202c33;
                 border-radius: 8px;
@@ -459,7 +468,6 @@ def get_css(theme):
                 font-weight: 500 !important;
             }
             
-            /* Send section */
             .send-section {
                 background-color: #202c33;
                 border-radius: 8px;
@@ -500,7 +508,6 @@ def get_css(theme):
                 flex: 1;
             }
             
-            /* WhatsApp Buttons */
             .stButton > button {
                 background-color: #00a884 !important;
                 color: #111b21 !important;
@@ -531,7 +538,6 @@ def get_css(theme):
                 margin-top: 4px;
             }
             
-            /* Input fields */
             .stTextInput input, .stTextArea textarea {
                 background-color: #2a3942 !important;
                 color: #e9edef !important;
@@ -546,23 +552,19 @@ def get_css(theme):
                 box-shadow: 0 0 0 1px #00a884 !important;
             }
             
-            /* Checkbox */
             [data-testid="stCheckbox"] label {
                 color: #e9edef !important;
                 font-size: 14px !important;
             }
             
-            /* Selectbox */
             .stSelectbox label {
                 color: #e9edef !important;
             }
             
-            /* Radio buttons */
             .stRadio label {
                 color: #e9edef !important;
             }
             
-            /* Date and time inputs */
             .stDateInput input, .stTimeInput input {
                 background-color: #2a3942 !important;
                 color: #e9edef !important;
@@ -570,7 +572,6 @@ def get_css(theme):
                 border-radius: 8px !important;
             }
             
-            /* Scrollbar */
             ::-webkit-scrollbar {
                 width: 6px;
                 height: 6px;
@@ -589,24 +590,20 @@ def get_css(theme):
                 background: #3b4a54;
             }
             
-            /* Hide streamlit elements */
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
             header {visibility: hidden;}
             
-            /* Override streamlit's default padding */
             .main .block-container {
                 padding-top: 0rem !important;
             }
             
-            /* Header buttons */
             .header-buttons {
                 display: flex;
                 align-items: center;
                 gap: 10px;
             }
             
-            /* Filter actions */
             .filter-actions {
                 display: flex;
                 gap: 10px;
@@ -614,14 +611,12 @@ def get_css(theme):
                 justify-content: flex-end;
             }
             
-            /* Top buttons */
             .top-buttons-row {
                 display: flex;
                 gap: 10px;
                 margin-bottom: 15px;
             }
             
-            /* Search input */
             .search-input {
                 background-color: #202c33;
                 border: none;
@@ -632,7 +627,6 @@ def get_css(theme):
                 width: 100%;
             }
             
-            /* Status indicators */
             .status-online {
                 color: #00a884;
                 font-size: 11px;
@@ -643,7 +637,6 @@ def get_css(theme):
                 font-size: 11px;
             }
             
-            /* Avatar colors based on name */
             .avatar-color-0 { background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%) !important; }
             .avatar-color-1 { background: linear-gradient(135deg, #48dbfb 0%, #0abde3 100%) !important; }
             .avatar-color-2 { background: linear-gradient(135deg, #1dd1a1 0%, #00b894 100%) !important; }
@@ -652,6 +645,63 @@ def get_css(theme):
             .avatar-color-5 { background: linear-gradient(135deg, #54a0ff 0%, #2e86de 100%) !important; }
             .avatar-color-6 { background: linear-gradient(135deg, #5f27cd 0%, #341f97 100%) !important; }
             .avatar-color-7 { background: linear-gradient(135deg, #00d2d3 0%, #01a3a4 100%) !important; }
+            
+            /* Toggle switch styles */
+            .toggle-container {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            
+            .toggle-label {
+                font-size: 12px;
+                color: #8696a0;
+            }
+            
+            .toggle-switch {
+                position: relative;
+                display: inline-block;
+                width: 40px;
+                height: 20px;
+            }
+            
+            .toggle-switch input {
+                opacity: 0;
+                width: 0;
+                height: 0;
+            }
+            
+            .toggle-slider {
+                position: absolute;
+                cursor: pointer;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: #ccc;
+                transition: .4s;
+                border-radius: 20px;
+            }
+            
+            .toggle-slider:before {
+                position: absolute;
+                content: "";
+                height: 16px;
+                width: 16px;
+                left: 2px;
+                bottom: 2px;
+                background-color: white;
+                transition: .4s;
+                border-radius: 50%;
+            }
+            
+            input:checked + .toggle-slider {
+                background-color: #00a884;
+            }
+            
+            input:checked + .toggle-slider:before {
+                transform: translateX(20px);
+            }
         </style>
         """
     else:
@@ -663,14 +713,12 @@ def get_css(theme):
                 padding: 0 !important;
             }
             
-            /* Remove default padding */
             .block-container {
                 padding-top: 0 !important;
                 padding-bottom: 0 !important;
                 max-width: 100% !important;
             }
             
-            /* WhatsApp Header */
             .main-header {
                 background: #f0f2f5;
                 padding: 10px 16px;
@@ -695,7 +743,7 @@ def get_css(theme):
 
             .handler-meta {
             font-size: 11px;
-            color: #303030;   /* BLACK in light mode */
+            color: #303030;
             margin-top: 2px;
             }
             
@@ -707,7 +755,6 @@ def get_css(theme):
                 border: 1px solid #dddfe2;
             }
             
-            /* Filter section */
             .filter-container {
                 background-color: #ffffff;
                 border: 1px solid #dddfe2;
@@ -762,7 +809,6 @@ def get_css(theme):
                 font-weight: 400;
             }
             
-            /* WhatsApp Sidebar Contacts */
             .contact-card {
                 background-color: transparent;
                 padding: 12px;
@@ -851,7 +897,23 @@ def get_css(theme):
                 margin-left: auto;
             }
             
-            /* WhatsApp Chat Header */
+            .automation-status {
+                font-size: 11px;
+                padding: 2px 6px;
+                border-radius: 4px;
+                margin-top: 2px;
+            }
+            
+            .automation-on {
+                background-color: #00a884;
+                color: white;
+            }
+            
+            .automation-off {
+                background-color: #dc3545;
+                color: white;
+            }
+            
             .chat-header {
                 background: #f0f2f5;
                 padding: 10px 16px;
@@ -900,11 +962,10 @@ def get_css(theme):
             
             .chat-header-actions {
                 display: flex;
-                gap: 20px;
+                gap: 10px;
                 align-items: center;
             }
             
-            /* WhatsApp Chat Area */
             .chat-container {
                 background: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
                 background-size: contain;
@@ -927,7 +988,6 @@ def get_css(theme):
                 pointer-events: none;
             }
             
-            /* WhatsApp Message Bubbles */
             .message-row {
                 display: flex;
                 margin-bottom: 8px;
@@ -1021,7 +1081,6 @@ def get_css(theme):
             .message-status.delivered { color: #667781; }
             .message-status.read { color: #53bdeb; }
             
-            /* WhatsApp Input Area */
             .input-area {
                 background: #f0f2f5;
                 padding: 10px 16px;
@@ -1031,7 +1090,6 @@ def get_css(theme):
                 z-index: 100;
             }
             
-            /* Update section */
             .update-section {
                 background-color: #ffffff;
                 border-radius: 8px;
@@ -1047,7 +1105,6 @@ def get_css(theme):
                 font-weight: 500 !important;
             }
             
-            /* Send section */
             .send-section {
                 background-color: #ffffff;
                 border-radius: 8px;
@@ -1082,7 +1139,6 @@ def get_css(theme):
                 flex: 1;
             }
             
-            /* WhatsApp Buttons */
             .stButton > button {
                 background-color: #00a884 !important;
                 color: white !important;
@@ -1113,7 +1169,6 @@ def get_css(theme):
                 margin-top: 4px;
             }
             
-            /* Input fields */
             .stTextInput input, .stTextArea textarea {
                 background-color: #ffffff !important;
                 color: #3b4a54 !important;
@@ -1128,23 +1183,19 @@ def get_css(theme):
                 box-shadow: 0 0 0 1px #00a884 !important;
             }
             
-            /* Checkbox */
             [data-testid="stCheckbox"] label {
                 color: #3b4a54 !important;
                 font-size: 14px !important;
             }
             
-            /* Selectbox */
             .stSelectbox label {
                 color: #3b4a54 !important;
             }
             
-            /* Radio buttons */
             .stRadio label {
                 color: #3b4a54 !important;
             }
             
-            /* Date and time inputs */
             .stDateInput input, .stTimeInput input {
                 background-color: #ffffff !important;
                 color: #3b4a54 !important;
@@ -1152,7 +1203,6 @@ def get_css(theme):
                 border-radius: 8px !important;
             }
             
-            /* Scrollbar */
             ::-webkit-scrollbar {
                 width: 6px;
                 height: 6px;
@@ -1171,24 +1221,20 @@ def get_css(theme):
                 background: #a0a4a8;
             }
             
-            /* Hide streamlit elements */
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
             header {visibility: hidden;}
             
-            /* Override streamlit's default padding */
             .main .block-container {
                 padding-top: 0rem !important;
             }
             
-            /* Header buttons */
             .header-buttons {
                 display: flex;
                 align-items: center;
                 gap: 10px;
             }
             
-            /* Filter actions */
             .filter-actions {
                 display: flex;
                 gap: 10px;
@@ -1196,14 +1242,12 @@ def get_css(theme):
                 justify-content: flex-end;
             }
             
-            /* Top buttons */
             .top-buttons-row {
                 display: flex;
                 gap: 10px;
                 margin-bottom: 15px;
             }
             
-            /* Search input */
             .search-input {
                 background-color: #ffffff;
                 border: none;
@@ -1214,7 +1258,6 @@ def get_css(theme):
                 width: 100%;
             }
             
-            /* Status indicators */
             .status-online {
                 color: #00a884;
                 font-size: 11px;
@@ -1225,7 +1268,6 @@ def get_css(theme):
                 font-size: 11px;
             }
             
-            /* Avatar colors */
             .avatar-color-0 { background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%) !important; }
             .avatar-color-1 { background: linear-gradient(135deg, #48dbfb 0%, #0abde3 100%) !important; }
             .avatar-color-2 { background: linear-gradient(135deg, #1dd1a1 0%, #00b894 100%) !important; }
@@ -1234,6 +1276,63 @@ def get_css(theme):
             .avatar-color-5 { background: linear-gradient(135deg, #54a0ff 0%, #2e86de 100%) !important; }
             .avatar-color-6 { background: linear-gradient(135deg, #5f27cd 0%, #341f97 100%) !important; }
             .avatar-color-7 { background: linear-gradient(135deg, #00d2d3 0%, #01a3a4 100%) !important; }
+            
+            /* Toggle switch styles for light mode */
+            .toggle-container {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            
+            .toggle-label {
+                font-size: 12px;
+                color: #667781;
+            }
+            
+            .toggle-switch {
+                position: relative;
+                display: inline-block;
+                width: 40px;
+                height: 20px;
+            }
+            
+            .toggle-switch input {
+                opacity: 0;
+                width: 0;
+                height: 0;
+            }
+            
+            .toggle-slider {
+                position: absolute;
+                cursor: pointer;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: #ccc;
+                transition: .4s;
+                border-radius: 20px;
+            }
+            
+            .toggle-slider:before {
+                position: absolute;
+                content: "";
+                height: 16px;
+                width: 16px;
+                left: 2px;
+                bottom: 2px;
+                background-color: white;
+                transition: .4s;
+                border-radius: 50%;
+            }
+            
+            input:checked + .toggle-slider {
+                background-color: #00a884;
+            }
+            
+            input:checked + .toggle-slider:before {
+                transform: translateX(20px);
+            }
         </style>
         """
 
@@ -1351,25 +1450,19 @@ def convert_to_ist(timestamp_str: str) -> datetime:
         if not timestamp_str:
             return datetime.now(IST)
         
-        # Clean the timestamp string
         timestamp_str = str(timestamp_str).replace('Z', '+00:00')
         
-        # Try parsing with different formats
         try:
             dt = datetime.fromisoformat(timestamp_str)
         except:
-            # Try parsing as UTC timestamp
             dt = datetime.strptime(timestamp_str, "%Y-%m-%dT%H:%M:%S.%f%z")
         
-        # If no timezone, assume UTC
         if dt.tzinfo is None:
             dt = pytz.utc.localize(dt)
         
-        # Convert to IST
         ist_dt = dt.astimezone(IST)
         return ist_dt
     except Exception as e:
-        # Return current IST time as fallback
         return datetime.now(IST)
 
 
@@ -1388,16 +1481,12 @@ def format_contact_time(timestamp_str: str) -> str:
         ist_dt = convert_to_ist(timestamp_str)
         now = datetime.now(IST)
         
-        # If today, show time
         if ist_dt.date() == now.date():
             return ist_dt.strftime("%I:%M %p").lstrip('0')
-        # If yesterday
         elif ist_dt.date() == (now.date() - timedelta(days=1)):
             return "Yesterday"
-        # If within last 7 days
         elif (now - ist_dt).days < 7:
             return ist_dt.strftime("%a")
-        # Otherwise show date
         else:
             return ist_dt.strftime("%d/%m")
     except:
@@ -1416,7 +1505,6 @@ def get_avatar_initials(name: str) -> str:
     if not name or name == "Unknown":
         return "?"
     
-    # Extract first letter of each word, max 2 letters
     words = name.split()
     if len(words) >= 2:
         return (words[0][0] + words[-1][0]).upper()
@@ -1446,7 +1534,7 @@ def make_request_with_retry(url, method="GET", params=None, json_data=None, max_
             
         except requests.exceptions.Timeout:
             if attempt < max_retries - 1:
-                time_module.sleep(2)  # Wait 2 seconds before retry
+                time_module.sleep(2)
                 continue
             else:
                 raise Exception(f"Request timed out after {max_retries} attempts")
@@ -1468,28 +1556,45 @@ def fetch_contacts(only_follow_up: bool):
         )
         
         if response and response.status_code == 200:
-            return response.json()
+            contacts_data = response.json()
+            # Fetch automation status for each contact
+            for contact in contacts_data:
+                phone = contact.get("phone")
+                if phone:
+                    contact["automation_enabled"] = get_client_automation_status(phone)
+            return contacts_data
         else:
             st.warning("Failed to fetch contacts. Please try again.")
             return []
             
     except Exception as e:
         st.warning(f"Could not fetch contacts: {str(e)}")
-        # Return sample data for demo
         return [
-            {"phone": "1234567890", "client_name": "John Doe", "follow_up_open": False},
-            {"phone": "9876543210", "client_name": "Jane Smith", "follow_up_open": True},
-            {"phone": "5555555555", "client_name": "Test Client", "follow_up_open": False}
+            {"phone": "1234567890", "client_name": "John Doe", "follow_up_open": False, "automation_enabled": True},
+            {"phone": "9876543210", "client_name": "Jane Smith", "follow_up_open": True, "automation_enabled": True},
+            {"phone": "5555555555", "client_name": "Test Client", "follow_up_open": False, "automation_enabled": True}
         ]
 
 
 def fetch_conversation(phone: str, limit: int = 50, offset: int = 0):
-    """Fetch conversation for a specific phone number"""
+    """Fetch conversation for a specific phone number from MongoDB"""
     try:
         if not phone:
             return []
         
-        # Try multiple endpoint formats with retry logic
+        # Try MongoDB API first
+        try:
+            response = make_request_with_retry(
+                f"{MONGO_API_BASE}/conversations/{phone}",
+                params={"limit": limit, "offset": offset}
+            )
+            
+            if response and response.status_code == 200:
+                return response.json()
+        except:
+            pass
+        
+        # Fallback to original API
         endpoints_to_try = [
             f"{API_BASE}/conversation/{phone}",
             f"{API_BASE}/conversation?phone={phone}"
@@ -1505,67 +1610,78 @@ def fetch_conversation(phone: str, limit: int = 50, offset: int = 0):
                 if response and response.status_code == 200:
                     return response.json()
                 elif response and response.status_code == 404:
-                    # Try next endpoint
                     continue
                     
             except Exception:
                 continue
         
-        # If all endpoints failed, return empty list or sample data
         return []
         
     except Exception as e:
         st.warning(f"Could not fetch conversation: {str(e)}")
-        # Return sample conversation for demo
-        if phone:
-            current_time = datetime.now(IST)
-            return [
-                {
-                    "id": 1,
-                    "phone": phone,
-                    "message": "Hello, I'm interested in your investment services.",
-                    "direction": "incoming",
-                    "timestamp": (current_time - timedelta(hours=2)).isoformat(),
-                    "follow_up_needed": True,
-                    "notes": "Interested in SIP",
-                    "handled_by": "Agent 1"
-                },
-                {
-                    "id": 2,
-                    "phone": phone,
-                    "message": "Hi! I'd be happy to help you with investment options. We have SIP plans starting from ₹500 per month.",
-                    "direction": "outgoing",
-                    "timestamp": (current_time - timedelta(hours=1)).isoformat(),
-                    "follow_up_needed": False,
-                    "notes": "",
-                    "handled_by": "System"
-                },
-                {
-                    "id": 3,
-                    "phone": phone,
-                    "message": "Can you send me more details about the SIP plans?",
-                    "direction": "incoming",
-                    "timestamp": current_time.isoformat(),
-                    "follow_up_needed": True,
-                    "notes": "",
-                    "handled_by": ""
-                }
-            ]
         return []
 
 
-def delete_conversation(phone: str):
+def save_conversation_to_mongo(phone: str, message: str, direction: str, 
+                              message_type: str = "text", notes: str = "", 
+                              handled_by: str = "", follow_up_needed: bool = False):
+    """Save conversation to MongoDB"""
     try:
-        response = make_request_with_retry(f"{API_BASE}/conversation/{phone}", method="DELETE")
+        ist_now = datetime.now(IST)
+        
+        payload = {
+            "phone": phone,
+            "message": message,
+            "direction": direction,
+            "message_type": message_type,
+            "timestamp": ist_now.isoformat(),
+            "follow_up_needed": follow_up_needed,
+            "notes": notes,
+            "handled_by": handled_by
+        }
+        
+        # Save to MongoDB
+        response = make_request_with_retry(
+            f"{MONGO_API_BASE}/conversations",
+            method="POST",
+            json_data=payload
+        )
+        
+        # Also save to original API for backup
+        try:
+            make_request_with_retry(
+                f"{API_BASE}/log_message",
+                method="POST",
+                json_data=payload
+            )
+        except:
+            pass
+        
         return response and response.status_code == 200
+    except Exception as e:
+        st.warning(f"Could not save to MongoDB: {e}")
+        return False
+
+
+def delete_conversation(phone: str):
+    """Delete conversation from both APIs"""
+    try:
+        # Delete from MongoDB
+        response1 = make_request_with_retry(f"{MONGO_API_BASE}/conversations/{phone}", method="DELETE")
+        # Delete from original API
+        response2 = make_request_with_retry(f"{API_BASE}/conversation/{phone}", method="DELETE")
+        return (response1 and response1.status_code == 200) or (response2 and response2.status_code == 200)
     except:
         return False
 
 
 def delete_message(msg_id: int):
     try:
-        response = make_request_with_retry(f"{API_BASE}/message/{msg_id}", method="DELETE")
-        return response and response.status_code == 200
+        # Try MongoDB first
+        response1 = make_request_with_retry(f"{MONGO_API_BASE}/messages/{msg_id}", method="DELETE")
+        # Try original API
+        response2 = make_request_with_retry(f"{API_BASE}/message/{msg_id}", method="DELETE")
+        return (response1 and response1.status_code == 200) or (response2 and response2.status_code == 200)
     except:
         return False
 
@@ -1608,7 +1724,14 @@ def send_whatsapp_message(phone: str, message_text: str,
     try:
         response = make_request_with_retry(MAKE_WEBHOOK_URL, method="POST", json_data=payload)
         if response and response.status_code in (200, 201, 202):
-            log_sent_message(phone, message_text, msg_type)
+            # Save to MongoDB
+            save_conversation_to_mongo(
+                phone=phone,
+                message=message_text,
+                direction="outgoing",
+                message_type=msg_type,
+                handled_by="Dashboard User"
+            )
             return True
         else:
             st.error(f"Send failed")
@@ -1618,26 +1741,43 @@ def send_whatsapp_message(phone: str, message_text: str,
         return False
 
 
-def log_sent_message(phone: str, message: str, msg_type: str = "text"):
-    """Log sent message to backend database with IST timestamp"""
+def get_client_automation_status(phone: str):
+    """Get automation status for a client from MongoDB"""
     try:
-        ist_now = datetime.now(IST)
-        
+        response = make_request_with_retry(f"{MONGO_API_BASE}/clients/{phone}/automation")
+        if response and response.status_code == 200:
+            data = response.json()
+            return data.get("automation_enabled", True)
+    except:
+        pass
+    
+    # Default to True if not found
+    return True
+
+
+def update_client_automation_status(phone: str, enabled: bool):
+    """Update automation status for a client in MongoDB"""
+    try:
         payload = {
             "phone": phone,
-            "message": message,
-            "direction": "outgoing",
-            "message_type": msg_type,
-            "timestamp": ist_now.isoformat(),
-            "follow_up_needed": False,
-            "notes": "",
-            "handled_by": "Dashboard User"
+            "automation_enabled": enabled,
+            "updated_at": datetime.now(IST).isoformat()
         }
-        response = make_request_with_retry(f"{API_BASE}/log_message", method="POST", json_data=payload)
-        return response and response.status_code == 200
+        
+        response = make_request_with_retry(
+            f"{MONGO_API_BASE}/clients/automation",
+            method="POST",
+            json_data=payload
+        )
+        
+        if response and response.status_code == 200:
+            # Update session state
+            st.session_state.client_automation_status[phone] = enabled
+            return True
     except Exception as e:
-        st.warning(f"Message sent but not logged in database: {e}")
-        return False
+        st.warning(f"Could not update automation status: {e}")
+    
+    return False
 
 
 # Fetch contacts with improved error handling
@@ -1660,11 +1800,10 @@ try:
     
 except Exception as e:
     st.warning(f"Could not load contacts: {str(e)}")
-    # Use sample contacts
     contacts = [
-        {"phone": "1234567890", "client_name": "John Doe", "follow_up_open": False},
-        {"phone": "9876543210", "client_name": "Jane Smith", "follow_up_open": True},
-        {"phone": "5555555555", "client_name": "Test Client", "follow_up_open": False}
+        {"phone": "1234567890", "client_name": "John Doe", "follow_up_open": False, "automation_enabled": True},
+        {"phone": "9876543210", "client_name": "Jane Smith", "follow_up_open": True, "automation_enabled": True},
+        {"phone": "5555555555", "client_name": "Test Client", "follow_up_open": False, "automation_enabled": True}
     ]
 
 if not contacts:
@@ -1744,6 +1883,11 @@ with col1:
         except:
             pass
         
+        # Get automation status
+        automation_enabled = c.get("automation_enabled", True)
+        automation_status_class = "automation-on" if automation_enabled else "automation-off"
+        automation_status_text = "🤖 Auto: ON" if automation_enabled else "🤖 Auto: OFF"
+        
         # Create contact card HTML
         contact_html = f"""
         <div class="contact-card {'selected' if is_selected else ''}">
@@ -1751,6 +1895,7 @@ with col1:
             <div class="contact-info">
                 <div class="contact-name">{html.escape(client_name)}</div>
                 <div class="contact-preview">{last_message_preview}</div>
+                <div class="automation-status {automation_status_class}">{automation_status_text}</div>
             </div>
             <div class="contact-meta">
                 <div class="contact-time">{last_time}</div>
@@ -1765,6 +1910,7 @@ with col1:
                     use_container_width=True):
             st.session_state.selected_phone = phone
             st.session_state.conv_offset = 0
+            # Clear the message field when switching contacts
             draft_key = f"new_msg_{phone}"
             if draft_key in st.session_state:
                 del st.session_state[draft_key]
@@ -1804,8 +1950,8 @@ with col2:
         </script>
         """, unsafe_allow_html=True)
     
-    # WhatsApp-like chat header with delete button
-    col_header_content, col_header_delete = st.columns([4, 1])
+    # WhatsApp-like chat header with automation toggle and delete button
+    col_header_content, col_header_toggle, col_header_delete = st.columns([3, 1, 1])
 
     with col_header_content:
         st.markdown(f"""
@@ -1819,6 +1965,55 @@ with col2:
             </div>
         </div>
         """, unsafe_allow_html=True)
+
+    with col_header_toggle:
+        st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+        
+        # Get current automation status
+        automation_enabled = get_client_automation_status(phone)
+        
+        # Create toggle switch
+        st.markdown("""
+        <div class="toggle-container">
+            <label class="toggle-label">Chatbot:</label>
+            <label class="toggle-switch">
+                <input type="checkbox" id="automation_toggle" %s>
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        """ % ("checked" if automation_enabled else ""), unsafe_allow_html=True)
+        
+        # Add JavaScript to handle toggle
+        toggle_html = f"""
+        <script>
+            document.getElementById('automation_toggle').addEventListener('change', function() {{
+                var enabled = this.checked;
+                fetch('{API_BASE}/update_automation', {{
+                    method: 'POST',
+                    headers: {{
+                        'Content-Type': 'application/json',
+                    }},
+                    body: JSON.stringify({{
+                        phone: '{phone}',
+                        automation_enabled: enabled
+                    }})
+                }}).then(response => {{
+                    if (response.ok) {{
+                        window.parent.location.reload();
+                    }}
+                }});
+            }});
+        </script>
+        """
+        st.markdown(toggle_html, unsafe_allow_html=True)
+        
+        # Also provide a fallback button for better UX
+        if st.button("Toggle Automation", key=f"toggle_auto_{phone}", use_container_width=True):
+            new_status = not automation_enabled
+            if update_client_automation_status(phone, new_status):
+                st.success(f"Automation {'enabled' if new_status else 'disabled'}!")
+                time_module.sleep(0.5)
+                st.rerun()
 
     with col_header_delete:
         st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
@@ -1889,7 +2084,6 @@ with col2:
                 direction = "user" if msg.get("direction") in ["user", "incoming"] else "bot"
                 
                 raw_text = msg.get("message", "")
-                # Escape HTML to prevent rendering
                 raw_text = html.escape(raw_text)
                 display_text = raw_text
                 
@@ -1959,11 +2153,12 @@ with col2:
     tmpl_key = f"tmpl_{phone}"
 
     with col_s1:
+        # Clear message field after sending by not persisting it in session state
         new_msg = st.text_area(
             "Message",
-            value=st.session_state.get(draft_key, ""),
+            value="",  # Always start empty
             placeholder="Type a WhatsApp message to send...",
-            key=draft_key,
+            key=f"msg_input_{phone}",
             height=100
         )
 
@@ -1990,9 +2185,7 @@ with col2:
             ok = send_whatsapp_message(phone, msg_clean, msg_type, template_name)
             if ok:
                 st.success("Message sent ✅")
-                if draft_key in st.session_state:
-                    del st.session_state[draft_key]
-                time_module.sleep(0.5)
+                # Clear the message field by rerunning
                 st.rerun()
     
     st.markdown('</div>', unsafe_allow_html=True)
