@@ -65,10 +65,6 @@ if "filter_only_fu" not in st.session_state:
 if "show_filters" not in st.session_state:
     st.session_state.show_filters = False
 
-# Initialize automation status dictionary
-if "automation_status" not in st.session_state:
-    st.session_state.automation_status = {}
-
 def get_base64_logo():
     """Load logo.png and convert to base64 for embedding"""
     logo_path = Path("Logo.png")
@@ -645,24 +641,6 @@ def get_css(theme):
             .status-offline {
                 color: #8696a0;
                 font-size: 11px;
-            }
-            
-            /* Automation status */
-            .automation-status {
-                padding: 4px 8px;
-                border-radius: 12px;
-                font-size: 12px;
-                font-weight: 600;
-            }
-            
-            .automation-on {
-                background-color: #00a884;
-                color: #111b21;
-            }
-            
-            .automation-off {
-                background-color: #ff3b30;
-                color: white;
             }
             
             /* Avatar colors based on name */
@@ -1247,24 +1225,6 @@ def get_css(theme):
                 font-size: 11px;
             }
             
-            /* Automation status */
-            .automation-status {
-                padding: 4px 8px;
-                border-radius: 12px;
-                font-size: 12px;
-                font-weight: 600;
-            }
-            
-            .automation-on {
-                background-color: #00a884;
-                color: white;
-            }
-            
-            .automation-off {
-                background-color: #ff3b30;
-                color: white;
-            }
-            
             /* Avatar colors */
             .avatar-color-0 { background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%) !important; }
             .avatar-color-1 { background: linear-gradient(135deg, #48dbfb 0%, #0abde3 100%) !important; }
@@ -1680,41 +1640,6 @@ def log_sent_message(phone: str, message: str, msg_type: str = "text"):
         return False
 
 
-def update_automation_status(phone: str, status: bool):
-    """Update automation status for a specific client"""
-    try:
-        response = make_request_with_retry(
-            f"{API_BASE}/automation/{phone}",
-            method="POST",
-            json_data={"enabled": status}
-        )
-        return response and response.status_code == 200
-    except:
-        # If backend doesn't support this endpoint, just update session state
-        return True
-
-
-def get_automation_status(phone: str):
-    """Get automation status for a specific client"""
-    # First check session state
-    if phone in st.session_state.automation_status:
-        return st.session_state.automation_status[phone]
-    
-    # Try to fetch from backend
-    try:
-        response = make_request_with_retry(f"{API_BASE}/automation/{phone}")
-        if response and response.status_code == 200:
-            data = response.json()
-            status = data.get("enabled", True)
-            st.session_state.automation_status[phone] = status
-            return status
-    except:
-        pass
-    
-    # Default to True (automation enabled)
-    return True
-
-
 # Fetch contacts with improved error handling
 try:
     contacts = fetch_contacts(st.session_state.filter_only_fu)
@@ -1840,7 +1765,6 @@ with col1:
                     use_container_width=True):
             st.session_state.selected_phone = phone
             st.session_state.conv_offset = 0
-            # Clear any draft message for the new contact
             draft_key = f"new_msg_{phone}"
             if draft_key in st.session_state:
                 del st.session_state[draft_key]
@@ -1864,39 +1788,37 @@ with col2:
     color_index = get_avatar_color(client_name)
     initials = get_avatar_initials(client_name)
     
-    # Get automation status for this client
-    automation_enabled = get_automation_status(phone)
+    col_toggle1, col_toggle2 = st.columns([3, 1])
+    with col_toggle1:
+        pass
+    with col_toggle2:
+        auto_refresh = st.checkbox("🔄 Auto-refresh", value=st.session_state.auto_refresh, key="auto_refresh_toggle")
+        st.session_state.auto_refresh = auto_refresh
     
-    # WhatsApp-like chat header with automation toggle and delete button
-    col_header_client, col_header_auto, col_header_delete = st.columns([3, 1, 1])
+    if st.session_state.auto_refresh:
+        st.markdown("""
+        <script>
+            setTimeout(function() {
+                window.parent.location.reload();
+            }, 5000);
+        </script>
+        """, unsafe_allow_html=True)
+    
+    # WhatsApp-like chat header with delete button
+    col_header_content, col_header_delete = st.columns([4, 1])
 
-    with col_header_client:
+    with col_header_content:
         st.markdown(f"""
-        <div class="chat-header-left">
-            <div class="chat-avatar avatar-color-{color_index}">{initials}</div>
-            <div class="chat-header-info">
-                <h3>{html.escape(client_name)}</h3>
-                <p>{phone}</p>
+        <div class="chat-header">
+            <div class="chat-header-left">
+                <div class="chat-avatar avatar-color-{color_index}">{initials}</div>
+                <div class="chat-header-info">
+                    <h3>{html.escape(client_name)}</h3>
+                    <p>{phone}</p>
+                </div>
             </div>
         </div>
         """, unsafe_allow_html=True)
-
-    with col_header_auto:
-        st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
-        automation_status_text = "🤖 ON" if automation_enabled else "🤖 OFF"
-        automation_status_type = "primary" if automation_enabled else "secondary"
-        
-        if st.button(automation_status_text, key="automation_toggle", type=automation_status_type, use_container_width=True):
-            # Toggle automation status
-            new_status = not automation_enabled
-            st.session_state.automation_status[phone] = new_status
-            
-            # Send to backend if supported
-            update_automation_status(phone, new_status)
-            
-            status_text = "enabled" if new_status else "disabled"
-            st.success(f"Chatbot automation {status_text} for {client_name}")
-            st.rerun()
 
     with col_header_delete:
         st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
@@ -1909,28 +1831,6 @@ with col2:
             else:
                 st.session_state.confirm_del = True
                 st.warning("Click again to confirm deletion")
-    
-    # Show automation status indicator
-    automation_class = "automation-on" if automation_enabled else "automation-off"
-    automation_label = "Chatbot: ACTIVE" if automation_enabled else "Chatbot: INACTIVE"
-    st.markdown(f"""
-    <div style="display: flex; justify-content: center; margin-bottom: 10px;">
-        <span class="automation-status {automation_class}">{automation_label}</span>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Auto-refresh toggle
-    auto_refresh = st.checkbox("🔄 Auto-refresh", value=st.session_state.auto_refresh, key="auto_refresh_toggle")
-    st.session_state.auto_refresh = auto_refresh
-    
-    if st.session_state.auto_refresh:
-        st.markdown("""
-        <script>
-            setTimeout(function() {
-                window.parent.location.reload();
-            }, 5000);
-        </script>
-        """, unsafe_allow_html=True)
     
     # Search in conversation
     search_query = st.text_input(
@@ -2059,17 +1959,13 @@ with col2:
     tmpl_key = f"tmpl_{phone}"
 
     with col_s1:
-        # Use a unique key for the text area to ensure it clears properly
-        msg_input_key = f"msg_input_{phone}"
         new_msg = st.text_area(
             "Message",
             value=st.session_state.get(draft_key, ""),
             placeholder="Type a WhatsApp message to send...",
-            key=msg_input_key,
+            key=draft_key,
             height=100
         )
-        # Store the current value in session state
-        st.session_state[draft_key] = new_msg
 
     with col_s2:
         msg_type_label = st.radio(
@@ -2094,13 +1990,8 @@ with col2:
             ok = send_whatsapp_message(phone, msg_clean, msg_type, template_name)
             if ok:
                 st.success("Message sent ✅")
-                # Clear the message input by removing it from session state
                 if draft_key in st.session_state:
                     del st.session_state[draft_key]
-                # Also clear the template name if it exists
-                if tmpl_key in st.session_state:
-                    del st.session_state[tmpl_key]
-                # Use a small delay and rerun to refresh the UI
                 time_module.sleep(0.5)
                 st.rerun()
     
