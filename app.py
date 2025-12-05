@@ -319,12 +319,6 @@ def get_css(theme):
                 align-items: center;
             }
             
-            .chat-status {
-                color: #00a884;
-                font-size: 13px;
-                font-weight: 400;
-            }
-            
             /* WhatsApp Chat Area */
             .chat-container {
                 background: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
@@ -908,12 +902,6 @@ def get_css(theme):
                 display: flex;
                 gap: 20px;
                 align-items: center;
-            }
-            
-            .chat-status {
-                color: #00a884;
-                font-size: 13px;
-                font-weight: 400;
             }
             
             /* WhatsApp Chat Area */
@@ -1816,32 +1804,33 @@ with col2:
         </script>
         """, unsafe_allow_html=True)
     
-    # WhatsApp-like chat header
-    st.markdown(f"""
-    <div class="chat-header">
-        <div class="chat-header-left">
-            <div class="chat-avatar avatar-color-{color_index}">{initials}</div>
-            <div class="chat-header-info">
-                <h3>{html.escape(client_name)}</h3>
-                <p>{phone}</p>
+    # WhatsApp-like chat header with delete button
+    col_header_content, col_header_delete = st.columns([4, 1])
+
+    with col_header_content:
+        st.markdown(f"""
+        <div class="chat-header">
+            <div class="chat-header-left">
+                <div class="chat-avatar avatar-color-{color_index}">{initials}</div>
+                <div class="chat-header-info">
+                    <h3>{html.escape(client_name)}</h3>
+                    <p>{phone}</p>
+                </div>
             </div>
         </div>
-        <div class="chat-header-actions">
-            <span class="chat-status">Online</span>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Delete button
-    if st.button("🗑️ Delete All", key="del_all"):
-        if st.session_state.get('confirm_del'):
-            if delete_conversation(phone):
-                st.success("Deleted!")
-                st.session_state.pop('confirm_del', None)
-                st.rerun()
-        else:
-            st.session_state.confirm_del = True
-            st.warning("Click again to confirm deletion")
+        """, unsafe_allow_html=True)
+
+    with col_header_delete:
+        st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+        if st.button("🗑️ Delete All", key="del_all", use_container_width=True):
+            if st.session_state.get('confirm_del'):
+                if delete_conversation(phone):
+                    st.success("Deleted!")
+                    st.session_state.pop('confirm_del', None)
+                    st.rerun()
+            else:
+                st.session_state.confirm_del = True
+                st.warning("Click again to confirm deletion")
     
     # Search in conversation
     search_query = st.text_input(
@@ -1932,6 +1921,7 @@ with col2:
                     handler_text = html.escape(msg["handled_by"])
                     message_html += f'<div class="handler-meta">👤 {handler_text}</div>'
                 
+                message_html += f'<div class="message-time">{msg_time}</div>'
                 message_html += "</div></div>"
                 st.markdown(message_html, unsafe_allow_html=True)
         
@@ -2038,5 +2028,3 @@ with col2:
                 st.error(f"Error: {str(e)}")
         
         st.markdown('</div>', unsafe_allow_html=True)
-
-
