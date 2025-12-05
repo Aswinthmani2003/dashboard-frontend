@@ -46,6 +46,10 @@ if "theme" not in st.session_state:
     st.session_state.theme = "dark"
 
 # Initialize filter states
+if "filter_phone" not in st.session_state:
+    st.session_state.filter_phone = ""
+if "filter_name" not in st.session_state:
+    st.session_state.filter_name = ""
 if "filter_by_date" not in st.session_state:
     st.session_state.filter_by_date = False
 if "filter_date" not in st.session_state:
@@ -60,10 +64,6 @@ if "filter_only_fu" not in st.session_state:
     st.session_state.filter_only_fu = False
 if "show_filters" not in st.session_state:
     st.session_state.show_filters = False
-
-# Initialize automation states per contact
-if "automation_enabled" not in st.session_state:
-    st.session_state.automation_enabled = {}
 
 def get_base64_logo():
     """Load logo.png and convert to base64 for embedding"""
@@ -120,54 +120,6 @@ def get_css(theme):
                 border-radius: 50%;
                 object-fit: cover;
                 border: 1px solid #2a3942;
-            }
-            
-            /* Automation status banner */
-            .automation-banner {
-                background-color: #2a3942;
-                padding: 8px 16px;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                border-bottom: 1px solid #374045;
-            }
-            
-            .automation-banner.enabled {
-                background-color: #1a472a;
-                border-bottom: 1px solid #25a54f;
-            }
-            
-            .automation-banner.disabled {
-                background-color: #4a2a2a;
-                border-bottom: 1px solid #dc3545;
-            }
-            
-            .automation-status {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                color: #e9edef;
-                font-size: 13px;
-            }
-            
-            .automation-indicator {
-                width: 8px;
-                height: 8px;
-                border-radius: 50%;
-                animation: pulse 2s infinite;
-            }
-            
-            .automation-indicator.enabled {
-                background-color: #25a54f;
-            }
-            
-            .automation-indicator.disabled {
-                background-color: #dc3545;
-            }
-            
-            @keyframes pulse {
-                0%, 100% { opacity: 1; }
-                50% { opacity: 0.5; }
             }
             
             /* Filter section */
@@ -755,54 +707,6 @@ def get_css(theme):
                 border: 1px solid #dddfe2;
             }
             
-            /* Automation status banner */
-            .automation-banner {
-                background-color: #e4e6eb;
-                padding: 8px 16px;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                border-bottom: 1px solid #d0d2d7;
-            }
-            
-            .automation-banner.enabled {
-                background-color: #d4edda;
-                border-bottom: 1px solid #25a54f;
-            }
-            
-            .automation-banner.disabled {
-                background-color: #f8d7da;
-                border-bottom: 1px solid #dc3545;
-            }
-            
-            .automation-status {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                color: #3b4a54;
-                font-size: 13px;
-            }
-            
-            .automation-indicator {
-                width: 8px;
-                height: 8px;
-                border-radius: 50%;
-                animation: pulse 2s infinite;
-            }
-            
-            .automation-indicator.enabled {
-                background-color: #25a54f;
-            }
-            
-            .automation-indicator.disabled {
-                background-color: #dc3545;
-            }
-            
-            @keyframes pulse {
-                0%, 100% { opacity: 1; }
-                50% { opacity: 0.5; }
-            }
-            
             /* Filter section */
             .filter-container {
                 background-color: #ffffff;
@@ -1375,6 +1279,23 @@ if st.session_state.show_filters:
     
     st.markdown('<div class="filter-content">', unsafe_allow_html=True)
     
+    col1, col2 = st.columns(2)
+    with col1:
+        st.session_state.filter_phone = st.text_input(
+            "📱 Phone Number",
+            value=st.session_state.filter_phone,
+            placeholder="Search by phone...",
+            key="filter_phone_input"
+        )
+    
+    with col2:
+        st.session_state.filter_name = st.text_input(
+            "👤 Client Name",
+            value=st.session_state.filter_name,
+            placeholder="Search by name...",
+            key="filter_name_input"
+        )
+    
     st.session_state.filter_by_date = st.checkbox(
         "📅 Enable date filter",
         value=st.session_state.filter_by_date,
@@ -1668,28 +1589,6 @@ def filter_messages(messages, date_filter, time_from, time_to):
     return filtered
 
 
-def get_automation_status(phone: str) -> bool:
-    """Get automation status for a specific phone number"""
-    return st.session_state.automation_enabled.get(phone, True)  # Default to True (enabled)
-
-
-def set_automation_status(phone: str, enabled: bool):
-    """Set automation status for a specific phone number"""
-    st.session_state.automation_enabled[phone] = enabled
-    
-    # Update backend via API
-    try:
-        response = make_request_with_retry(
-            f"{API_BASE}/automation/{phone}",
-            method="PATCH",
-            json_data={"automation_enabled": enabled}
-        )
-        return response and response.status_code == 200
-    except Exception as e:
-        st.warning(f"Could not update automation status on server: {str(e)}")
-        return False
-
-
 def send_whatsapp_message(phone: str, message_text: str,
                           msg_type: str = "text",
                           template_name: str | None = None) -> bool:
@@ -1744,6 +1643,12 @@ def log_sent_message(phone: str, message: str, msg_type: str = "text"):
 # Fetch contacts with improved error handling
 try:
     contacts = fetch_contacts(st.session_state.filter_only_fu)
+    
+    # Apply filters
+    if st.session_state.filter_phone:
+        contacts = [c for c in contacts if st.session_state.filter_phone.lower() in c.get("phone", "").lower()]
+    if st.session_state.filter_name:
+        contacts = [c for c in contacts if c.get("client_name") and st.session_state.filter_name.lower() in c["client_name"].lower()]
     
     # Sort contacts by client name
     def get_contact_sort_key(contact):
@@ -1878,44 +1783,6 @@ with col2:
         st.stop()
     
     client_name = selected.get("client_name") or phone
-    
-    # Get automation status for this contact
-    automation_enabled = get_automation_status(phone)
-    
-    # Display automation status banner
-    banner_class = "enabled" if automation_enabled else "disabled"
-    indicator_class = "enabled" if automation_enabled else "disabled"
-    status_text = "🤖 Bot Active - Auto-responses enabled" if automation_enabled else "👤 Manual Mode - Auto-responses paused"
-    
-    st.markdown(f"""
-    <div class="automation-banner {banner_class}">
-        <div class="automation-status">
-            <div class="automation-indicator {indicator_class}"></div>
-            <span>{status_text}</span>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Automation toggle checkbox
-    col_auto1, col_auto2 = st.columns([3, 1])
-    with col_auto1:
-        pass  # Empty space
-    with col_auto2:
-        new_automation_status = st.checkbox(
-            "🤖 Enable Bot", 
-            value=automation_enabled,
-            key=f"automation_toggle_{phone}",
-            help="When enabled, the chatbot will automatically respond to this client. Disable when you're manually chatting."
-        )
-        
-        # If automation status changed, update it
-        if new_automation_status != automation_enabled:
-            if set_automation_status(phone, new_automation_status):
-                st.success(f"✅ Automation {'enabled' if new_automation_status else 'disabled'}")
-                time_module.sleep(0.5)
-                st.rerun()
-            else:
-                st.warning("⚠️ Status updated locally (server update failed)")
     
     # Get avatar color and initials
     color_index = get_avatar_color(client_name)
@@ -2085,11 +1952,6 @@ with col2:
     # Send message section
     st.markdown('<div class="send-section">', unsafe_allow_html=True)
     st.markdown("### ✉️ Send Message")
-    
-    # Show warning if automation is enabled
-    if automation_enabled:
-        st.warning("⚠️ Automation is currently **enabled**. The bot will auto-respond after you send this message. Consider disabling automation above if you want to chat manually.")
-    
     col_s1, col_s2 = st.columns([3, 1])
 
     draft_key = f"new_msg_{phone}"
