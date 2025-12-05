@@ -46,10 +46,6 @@ if "theme" not in st.session_state:
     st.session_state.theme = "dark"
 
 # Initialize filter states
-if "filter_phone" not in st.session_state:
-    st.session_state.filter_phone = ""
-if "filter_name" not in st.session_state:
-    st.session_state.filter_name = ""
 if "filter_by_date" not in st.session_state:
     st.session_state.filter_by_date = False
 if "filter_date" not in st.session_state:
@@ -1279,23 +1275,6 @@ if st.session_state.show_filters:
     
     st.markdown('<div class="filter-content">', unsafe_allow_html=True)
     
-    col1, col2 = st.columns(2)
-    with col1:
-        st.session_state.filter_phone = st.text_input(
-            "📱 Phone Number",
-            value=st.session_state.filter_phone,
-            placeholder="Search by phone...",
-            key="filter_phone_input"
-        )
-    
-    with col2:
-        st.session_state.filter_name = st.text_input(
-            "👤 Client Name",
-            value=st.session_state.filter_name,
-            placeholder="Search by name...",
-            key="filter_name_input"
-        )
-    
     st.session_state.filter_by_date = st.checkbox(
         "📅 Enable date filter",
         value=st.session_state.filter_by_date,
@@ -1643,12 +1622,6 @@ def log_sent_message(phone: str, message: str, msg_type: str = "text"):
 # Fetch contacts with improved error handling
 try:
     contacts = fetch_contacts(st.session_state.filter_only_fu)
-    
-    # Apply filters
-    if st.session_state.filter_phone:
-        contacts = [c for c in contacts if st.session_state.filter_phone.lower() in c.get("phone", "").lower()]
-    if st.session_state.filter_name:
-        contacts = [c for c in contacts if c.get("client_name") and st.session_state.filter_name.lower() in c["client_name"].lower()]
     
     # Sort contacts by client name
     def get_contact_sort_key(contact):
@@ -2028,3 +2001,4 @@ with col2:
                 st.error(f"Error: {str(e)}")
         
         st.markdown('</div>', unsafe_allow_html=True)
+
