@@ -35,7 +35,7 @@ def check_password():
 
 # Page config
 st.set_page_config(
-    page_title="WhatsApp Chat Inbox",
+    page_title="AMI ClientConnect",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -1249,7 +1249,7 @@ else:
 st.markdown(f"""
 <div class="main-header">
     {logo_html}
-    <h1>WhatsApp Chat Inbox</h1>
+    <h1>AMI ClientConnect</h1>
 </div>
 """, unsafe_allow_html=True)
 
@@ -2062,3 +2062,4 @@ with col2:
                 st.error(f"Error: {str(e)}")
         
         st.markdown('</div>', unsafe_allow_html=True)
+
