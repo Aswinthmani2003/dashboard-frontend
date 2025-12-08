@@ -1862,8 +1862,15 @@ with col2:
     time_to = st.session_state.filter_time_to if st.session_state.filter_by_time else None
     conv = filter_messages(conv, date_filter, time_from, time_to)
     
-    # Sort messages chronologically
-    conv.sort(key=lambda x: convert_to_ist(x["timestamp"]), reverse=False)
+    # Sort messages chronologically (oldest first for chat view)
+    # Use (timestamp, id) so if timestamps are equal, lower id (older) comes first
+    conv.sort(
+        key=lambda x: (
+            convert_to_ist(x.get("timestamp")),
+            x.get("id", 0)
+            ),
+        reverse=False
+        )
     
     # Calculate unread messages
     unread_count = sum(1 for m in conv if m.get("follow_up_needed"))
