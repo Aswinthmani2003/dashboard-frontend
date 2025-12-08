@@ -1622,11 +1622,12 @@ def log_sent_message(phone: str, message: str, msg_type: str = "text"):
     """Log sent message to backend database with IST timestamp"""
     try:
         ist_now = datetime.now(IST)
-        
+
         payload = {
             "phone": phone,
             "message": message,
-            "direction": "outgoing",
+            # <<< CHANGE THIS LINE
+            "direction": "Dashboard User",   # instead of "outgoing"
             "message_type": msg_type,
             "timestamp": ist_now.isoformat(),
             "follow_up_needed": False,
@@ -1638,6 +1639,7 @@ def log_sent_message(phone: str, message: str, msg_type: str = "text"):
     except Exception as e:
         st.warning(f"Message sent but not logged in database: {e}")
         return False
+
 
 
 # Fetch contacts with improved error handling
