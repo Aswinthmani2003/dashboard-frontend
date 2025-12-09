@@ -14,6 +14,7 @@ MAKE_WEBHOOK_URL = st.secrets.get("make_webhook_url", "")
 # Define IST timezone
 IST = pytz.timezone('Asia/Kolkata')
 
+
 def check_password():
     """Simple password gate using Streamlit secrets"""
 
@@ -32,6 +33,7 @@ def check_password():
         st.text_input("Password", type="password", on_change=password_entered, key="password")
         st.error("❌ Wrong password")
         st.stop()
+
 
 # Page config
 st.set_page_config(
@@ -65,6 +67,7 @@ if "filter_only_fu" not in st.session_state:
 if "show_filters" not in st.session_state:
     st.session_state.show_filters = False
 
+
 def get_base64_logo():
     """Load logo.png and convert to base64 for embedding"""
     logo_path = Path("Logo.png")
@@ -73,6 +76,7 @@ def get_base64_logo():
             data = f.read()
         return base64.b64encode(data).decode()
     return None
+
 
 def get_css(theme):
     if theme == "dark":
@@ -1237,6 +1241,7 @@ def get_css(theme):
         </style>
         """
 
+
 st.markdown(get_css(st.session_state.theme), unsafe_allow_html=True)
 
 logo_base64 = get_base64_logo()
@@ -1276,9 +1281,9 @@ if st.session_state.show_filters:
     st.markdown('<div class="filter-header">', unsafe_allow_html=True)
     st.markdown('<h3><span>🔍</span> Filter Options</h3>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
-    
+
     st.markdown('<div class="filter-content">', unsafe_allow_html=True)
-    
+
     col1, col2 = st.columns(2)
     with col1:
         st.session_state.filter_phone = st.text_input(
@@ -1287,7 +1292,7 @@ if st.session_state.show_filters:
             placeholder="Search by phone...",
             key="filter_phone_input"
         )
-    
+
     with col2:
         st.session_state.filter_name = st.text_input(
             "👤 Client Name",
@@ -1295,26 +1300,26 @@ if st.session_state.show_filters:
             placeholder="Search by name...",
             key="filter_name_input"
         )
-    
+
     st.session_state.filter_by_date = st.checkbox(
         "📅 Enable date filter",
         value=st.session_state.filter_by_date,
         key="filter_by_date_check"
     )
-    
+
     if st.session_state.filter_by_date:
         st.session_state.filter_date = st.date_input(
             "Select date",
             value=st.session_state.filter_date,
             key="filter_date_input"
         )
-    
+
     st.session_state.filter_by_time = st.checkbox(
         "🕐 Enable time filter",
         value=st.session_state.filter_by_time,
         key="filter_by_time_check"
     )
-    
+
     if st.session_state.filter_by_time:
         col_time1, col_time2 = st.columns(2)
         with col_time1:
@@ -1329,18 +1334,18 @@ if st.session_state.show_filters:
                 value=st.session_state.filter_time_to,
                 key="filter_time_to_input"
             )
-    
+
     st.session_state.filter_only_fu = st.checkbox(
         "🔴 Show only follow-up clients",
         value=st.session_state.filter_only_fu,
         key="filter_only_fu_check"
     )
-    
+
     st.markdown('<div class="filter-actions">', unsafe_allow_html=True)
     if st.button("Apply Filters", use_container_width=True, type="primary"):
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
-    
+
     st.markdown('</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -1350,54 +1355,42 @@ def convert_to_ist(timestamp_str: str) -> datetime:
     try:
         if not timestamp_str:
             return datetime.now(IST)
-        
-        # Clean the timestamp string
+
         timestamp_str = str(timestamp_str).replace('Z', '+00:00')
-        
-        # Try parsing with different formats
+
         try:
             dt = datetime.fromisoformat(timestamp_str)
         except:
-            # Try parsing as UTC timestamp
             dt = datetime.strptime(timestamp_str, "%Y-%m-%dT%H:%M:%S.%f%z")
-        
-        # If no timezone, assume UTC
+
         if dt.tzinfo is None:
             dt = pytz.utc.localize(dt)
-        
-        # Convert to IST
+
         ist_dt = dt.astimezone(IST)
         return ist_dt
     except Exception:
-        # Return current IST time as fallback
         return datetime.now(IST)
 
 
 def format_message_time(timestamp_str: str) -> str:
-    """Format timestamp for display in IST timezone (HH:MM format)"""
     ist_dt = convert_to_ist(timestamp_str)
     return ist_dt.strftime("%I:%M %p").lstrip('0')
 
 
 def format_contact_time(timestamp_str: str) -> str:
-    """Format timestamp for contact list display"""
     try:
         if not timestamp_str:
             return ""
-        
+
         ist_dt = convert_to_ist(timestamp_str)
         now = datetime.now(IST)
-        
-        # If today, show time
+
         if ist_dt.date() == now.date():
             return ist_dt.strftime("%I:%M %p").lstrip('0')
-        # If yesterday
         elif ist_dt.date() == (now.date() - timedelta(days=1)):
             return "Yesterday"
-        # If within last 7 days
         elif (now - ist_dt).days < 7:
             return ist_dt.strftime("%a")
-        # Otherwise show date
         else:
             return ist_dt.strftime("%d/%m")
     except:
@@ -1405,18 +1398,15 @@ def format_contact_time(timestamp_str: str) -> str:
 
 
 def get_avatar_color(name: str) -> int:
-    """Get consistent color index for avatar based on name"""
     if not name:
         return 0
     return hash(name) % 8
 
 
 def get_avatar_initials(name: str) -> str:
-    """Get initials for avatar"""
     if not name or name == "Unknown":
         return "?"
-    
-    # Extract first letter of each word, max 2 letters
+
     words = name.split()
     if len(words) >= 2:
         return (words[0][0] + words[-1][0]).upper()
@@ -1440,13 +1430,13 @@ def make_request_with_retry(url, method="GET", params=None, json_data=None, max_
                 response = requests.patch(url, json=json_data, timeout=30)
             else:
                 response = requests.get(url, params=params, timeout=30)
-            
+
             response.raise_for_status()
             return response
-            
+
         except requests.exceptions.Timeout:
             if attempt < max_retries - 1:
-                time_module.sleep(2)  # Wait 2 seconds before retry
+                time_module.sleep(2)
                 continue
             else:
                 raise Exception(f"Request timed out after {max_retries} attempts")
@@ -1466,16 +1456,15 @@ def fetch_contacts(only_follow_up: bool):
             f"{API_BASE}/contacts",
             params={"only_follow_up": only_follow_up}
         )
-        
+
         if response and response.status_code == 200:
             return response.json()
         else:
             st.warning("Failed to fetch contacts. Please try again.")
             return []
-            
+
     except Exception as e:
         st.warning(f"Could not fetch contacts: {str(e)}")
-        # Return sample data for demo
         return [
             {"phone": "1234567890", "client_name": "John Doe", "follow_up_open": False},
             {"phone": "9876543210", "client_name": "Jane Smith", "follow_up_open": True},
@@ -1488,35 +1477,31 @@ def fetch_conversation(phone: str, limit: int = 50, offset: int = 0):
     try:
         if not phone:
             return []
-        
-        # Try multiple endpoint formats with retry logic
+
         endpoints_to_try = [
             f"{API_BASE}/conversation/{phone}",
             f"{API_BASE}/conversation"
         ]
-        
+
         for endpoint in endpoints_to_try:
             try:
                 response = make_request_with_retry(
                     endpoint,
                     params={"phone": phone, "limit": limit, "offset": offset}
                 )
-                
+
                 if response and response.status_code == 200:
                     return response.json()
                 elif response and response.status_code == 404:
-                    # Try next endpoint
                     continue
-                    
+
             except Exception:
                 continue
-        
-        # If all endpoints failed, return empty list or sample data
+
         return []
-        
+
     except Exception as e:
         st.warning(f"Could not fetch conversation: {str(e)}")
-        # Sample demo data fallback
         if phone:
             current_time = datetime.now(IST)
             return [
@@ -1569,6 +1554,38 @@ def delete_message(msg_id: int):
     except:
         return False
 
+
+# ---------- NEW: automation helpers ----------
+
+def fetch_automation_status(phone: str) -> bool:
+    """
+    Get automation_enabled flag for a specific phone.
+    Default: True (chatbot ON) if anything fails.
+    """
+    try:
+        response = make_request_with_retry(f"{API_BASE}/automation/{phone}", method="GET")
+        if response and response.status_code == 200:
+            data = response.json()
+            return bool(data.get("automation_enabled", True))
+    except Exception:
+        pass
+    return True
+
+
+def set_automation_status(phone: str, enabled: bool) -> bool:
+    """Update automation_enabled flag for a specific phone."""
+    try:
+        response = make_request_with_retry(
+            f"{API_BASE}/automation/{phone}",
+            method="PATCH",
+            json_data={"automation_enabled": enabled}
+        )
+        return response and response.status_code == 200
+    except Exception:
+        return False
+
+
+# -------------------------------------------
 
 def filter_messages(messages, date_filter, time_from, time_to):
     if not date_filter and not time_from:
@@ -1626,8 +1643,7 @@ def log_sent_message(phone: str, message: str, msg_type: str = "text"):
         payload = {
             "phone": phone,
             "message": message,
-            # <<< CHANGE THIS LINE
-            "direction": "Dashboard User",   # instead of "outgoing"
+            "direction": "Dashboard User",   # not used by backend, it forces 'dashboard'
             "message_type": msg_type,
             "timestamp": ist_now.isoformat(),
             "follow_up_needed": False,
@@ -1641,12 +1657,10 @@ def log_sent_message(phone: str, message: str, msg_type: str = "text"):
         return False
 
 
-
 # Fetch contacts with improved error handling
 try:
     contacts = fetch_contacts(st.session_state.filter_only_fu)
-    
-    # SAFE FILTERING ---------------  (this is what was breaking before)
+
     if st.session_state.filter_phone.strip():
         phone_query = st.session_state.filter_phone.strip().lower()
         contacts = [
@@ -1659,18 +1673,16 @@ try:
             c for c in contacts
             if name_query in str(c.get("client_name") or "").lower()
         ]
-    
-    # Sort contacts by client name
+
     def get_contact_sort_key(contact):
         name = str(contact.get("client_name") or "").lower()
         phone = str(contact.get("phone") or "")
         return (name, phone)
-    
+
     contacts.sort(key=get_contact_sort_key)
-    
+
 except Exception as e:
     st.warning(f"Could not load contacts: {str(e)}")
-    # Fallback demo contacts
     contacts = [
         {"phone": "1234567890", "client_name": "John Doe", "follow_up_open": False},
         {"phone": "9876543210", "client_name": "Jane Smith", "follow_up_open": True},
@@ -1700,17 +1712,17 @@ CONV_LIMIT = 20
 
 col1, col2 = st.columns([1, 2.5])
 
+# ---------------- LEFT SIDEBAR (CONTACTS) -----------------
 with col1:
     st.markdown("### 💬 Contacts")
-    
-    # Search in contacts
+
     search_query_contacts = st.text_input(
         "Search contacts...",
         placeholder="Type to search...",
         key="search_contacts",
         label_visibility="collapsed"
     )
-    
+
     if search_query_contacts:
         sq = search_query_contacts.lower()
         filtered_contacts = [
@@ -1720,13 +1732,12 @@ with col1:
         ]
     else:
         filtered_contacts = contacts
-    
+
     for c in filtered_contacts:
         client_name = c.get("client_name") or "Unknown"
         phone = c.get("phone", "")
         is_selected = st.session_state.selected_phone == phone
-        
-        # Get last message preview
+
         last_message_preview = "No messages yet"
         try:
             conv = fetch_conversation(phone, limit=1)
@@ -1736,19 +1747,16 @@ with col1:
                     last_message_preview = html.escape(last_msg[:30]) + ("..." if len(last_msg) > 30 else "")
         except:
             pass
-        
-        # Calculate unread messages
+
         try:
             conv = fetch_conversation(phone, limit=50)
             unread_count = sum(1 for msg in conv if msg.get("follow_up_needed"))
         except:
             unread_count = 0
-        
-        # Get avatar color and initials
+
         color_index = get_avatar_color(client_name)
         initials = get_avatar_initials(client_name)
-        
-        # Format last message time
+
         last_time = ""
         try:
             conv = fetch_conversation(phone, limit=1)
@@ -1756,8 +1764,7 @@ with col1:
                 last_time = format_contact_time(conv[0].get("timestamp"))
         except:
             pass
-        
-        # The HTML card (kept for visual consistency even though the button is what’s clickable)
+
         _ = f"""
         <div class="contact-card {'selected' if is_selected else ''}">
             <div class="contact-avatar avatar-color-{color_index}">{initials}</div>
@@ -1771,7 +1778,7 @@ with col1:
             </div>
         </div>
         """
-        
+
         if st.button(
             f"📱 {client_name} ({phone})",
             key=f"contact_{phone}",
@@ -1785,31 +1792,54 @@ with col1:
                 del st.session_state[draft_key]
             st.rerun()
 
+# ---------------- RIGHT SIDE (CHAT + CONTROLS) -----------------
 with col2:
     phone = st.session_state.selected_phone
     if not phone and contacts:
         phone = contacts[0].get("phone", "")
         st.session_state.selected_phone = phone
-    
+
     selected = next((c for c in contacts if c.get("phone") == phone), None) if phone else None
-    
+
     if not selected:
         st.info("📭 Select a contact to view messages")
         st.stop()
-    
+
     client_name = selected.get("client_name") or phone
-    
-    # Get avatar color and initials
+
     color_index = get_avatar_color(client_name)
     initials = get_avatar_initials(client_name)
-    
-    col_toggle1, col_toggle2 = st.columns([3, 1])
+
+    # ---------- Automation + auto-refresh toggles ----------
+    auto_state_key = f"automation_enabled_{phone}"
+    if auto_state_key not in st.session_state:
+        st.session_state[auto_state_key] = fetch_automation_status(phone)
+    current_auto_enabled = st.session_state[auto_state_key]
+
+    col_toggle1, col_toggle2, col_toggle3 = st.columns([2, 1, 1])
     with col_toggle1:
         pass
+
     with col_toggle2:
+        new_auto_enabled = st.checkbox(
+            "🤖 Chatbot ON",
+            value=current_auto_enabled,
+            key=f"auto_toggle_{phone}"
+        )
+
+    with col_toggle3:
         auto_refresh = st.checkbox("🔄 Auto-refresh", value=st.session_state.auto_refresh, key="auto_refresh_toggle")
         st.session_state.auto_refresh = auto_refresh
-    
+
+    # Detect automation toggle change and push to backend
+    if new_auto_enabled != current_auto_enabled:
+        if set_automation_status(phone, new_auto_enabled):
+            st.session_state[auto_state_key] = new_auto_enabled
+            st.success("Automation turned " + ("ON ✅" if new_auto_enabled else "OFF ⏸️"))
+        else:
+            st.error("Failed to update automation status.")
+            st.session_state[auto_state_key] = current_auto_enabled
+
     if st.session_state.auto_refresh:
         st.markdown("""
         <script>
@@ -1818,7 +1848,7 @@ with col2:
             }, 5000);
         </script>
         """, unsafe_allow_html=True)
-    
+
     # Chat header + delete button
     col_header_content, col_header_delete = st.columns([4, 1])
 
@@ -1846,7 +1876,7 @@ with col2:
             else:
                 st.session_state.confirm_del = True
                 st.warning("Click again to confirm deletion")
-    
+
     # Search in conversation
     search_query = st.text_input(
         "Search in this chat",
@@ -1854,38 +1884,36 @@ with col2:
         key="search_conv",
         label_visibility="collapsed"
     )
-    
+
     # Fetch conversation
     conv = fetch_conversation(phone, limit=CONV_LIMIT, offset=st.session_state.conv_offset)
-    
+
     # Apply filters
     date_filter = st.session_state.filter_date if st.session_state.filter_by_date else None
     time_from = st.session_state.filter_time_from if st.session_state.filter_by_time else None
     time_to = st.session_state.filter_time_to if st.session_state.filter_by_time else None
     conv = filter_messages(conv, date_filter, time_from, time_to)
-    
-    # Sort messages chronologically (oldest first for chat view)
-    # Use (timestamp, id) so if timestamps are equal, lower id (older) comes first
+
+    # Correct chronological order (oldest first)
     conv.sort(
         key=lambda x: (
             convert_to_ist(x.get("timestamp")),
             x.get("id", 0)
-            ),
+        ),
         reverse=False
-        )
-    
-    # Calculate unread messages
+    )
+
     unread_count = sum(1 for m in conv if m.get("follow_up_needed"))
-    
+
     if unread_count > 0:
         st.markdown(
             '<div style="color: #ff3b30; font-size: 13px; margin: 0 0 10px 20px;">'
             f'🔴 {unread_count} unread messages</div>',
             unsafe_allow_html=True
         )
-    
+
     chat_container = st.container()
-    
+
     with chat_container:
         if not conv:
             st.info("📭 No messages yet")
@@ -1894,52 +1922,54 @@ with col2:
             for msg in conv:
                 msg_dt = convert_to_ist(msg["timestamp"])
                 msg_date = msg_dt.date()
-                
+
                 if current_date != msg_date:
                     current_date = msg_date
                     today = datetime.now(IST).date()
-                    
+
                     if msg_date == today:
                         date_label = "Today"
                     elif msg_date == today - timedelta(days=1):
                         date_label = "Yesterday"
                     else:
                         date_label = msg_dt.strftime("%B %d, %Y")
-                    
+
                     st.markdown(
                         f'<div style="text-align: center; margin: 16px 0; color: #8696a0; font-size: 12px;">{date_label}</div>',
                         unsafe_allow_html=True
                     )
-                
+
                 direction = "user" if msg.get("direction") in ["user", "incoming"] else "bot"
-                
+
                 raw_text = msg.get("message", "")
                 raw_text = html.escape(raw_text)
                 display_text = raw_text
-                
+
                 if search_query and search_query.strip():
                     pattern = re.escape(search_query.strip())
+
                     def repl(m):
                         return (
                             '<span style="background-color: #ffd700; padding: 0 1px; '
                             'border-radius: 2px;">'
                             f'{html.escape(m.group(0))}</span>'
                         )
+
                     try:
                         display_text = re.sub(pattern, repl, display_text, flags=re.IGNORECASE)
                     except:
                         pass
-                
+
                 display_text = display_text.replace("\n", "<br>")
-                
+
                 msg_time = format_message_time(msg["timestamp"])
-                
+
                 message_html = f"""
                 <div class="message-row {direction}">
                     <div class="message-bubble {direction}">
                         <div class="message-text">{display_text}</div>
                 """
-                
+
                 if msg.get("notes"):
                     notes_text = html.escape(msg["notes"])
                     message_html += (
@@ -1951,13 +1981,13 @@ with col2:
                 if msg.get("handled_by"):
                     handler_text = html.escape(msg["handled_by"])
                     message_html += f'<div class="handler-meta">👤 {handler_text}</div>'
-                
+
                 message_html += f'<div class="message-time">{msg_time}</div>'
                 message_html += "</div></div>"
                 st.markdown(message_html, unsafe_allow_html=True)
-        
+
         st.markdown('</div>', unsafe_allow_html=True)
-    
+
     # Pagination
     st.markdown('<div class="pagination-section">', unsafe_allow_html=True)
     col_p1, col_p2, col_p3 = st.columns([1, 2, 1])
@@ -1980,9 +2010,9 @@ with col2:
         if st.button("Next ➡️"):
             st.session_state.conv_offset += CONV_LIMIT
             st.rerun()
-    
+
     st.markdown('</div>', unsafe_allow_html=True)
-    
+
     # Send message section
     st.markdown('<div class="send-section">', unsafe_allow_html=True)
     st.markdown("### ✉️ Send Message")
@@ -2025,27 +2055,27 @@ with col2:
             if ok:
                 st.success("Message sent ✅")
                 if draft_key in st.session_state:
-                    del st.session_state[draft_key]
+                    del st.session_state[draft_key]  # auto-clear after send
                 time_module.sleep(0.5)
                 st.rerun()
-    
+
     st.markdown('</div>', unsafe_allow_html=True)
-    
+
     # Update follow-up status section
     update_msg = conv[0] if conv else None
-    
+
     if update_msg:
         st.markdown('<div class="update-section">', unsafe_allow_html=True)
         st.markdown("### 📝 Update Follow-up Status")
-        
+
         col_u1, col_u2 = st.columns(2)
         with col_u1:
             fu_flag = st.checkbox("🔴 Follow-up needed", value=update_msg.get("follow_up_needed", False))
         with col_u2:
             handler = st.text_input("👤 Handled by", value=update_msg.get("handled_by") or "")
-        
+
         notes = st.text_area("📝 Notes", value=update_msg.get("notes") or "")
-        
+
         if st.button("💾 Save Follow-up", use_container_width=True):
             try:
                 response = make_request_with_retry(
@@ -2060,6 +2090,5 @@ with col2:
                     st.error("Error saving follow-up status")
             except Exception as e:
                 st.error(f"Error: {str(e)}")
-        
-        st.markdown('</div>', unsafe_allow_html=True)
 
+        st.markdown('</div>', unsafe_allow_html=True)
