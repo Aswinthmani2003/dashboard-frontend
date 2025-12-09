@@ -1278,7 +1278,6 @@ with col2:
 
 if st.session_state.show_filters:
     st.markdown('<div class="filter-container">', unsafe_allow_html=True)
-    st.markdown('<div class="filter-header">', unsafe_allow_html=True)
     st.markdown('<h3><span>🔍</span> Filter Options</h3>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -2075,3 +2074,4 @@ with col2:
                 st.error(f"Error: {str(e)}")
 
         st.markdown('</div>', unsafe_allow_html=True)
+
