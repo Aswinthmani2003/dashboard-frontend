@@ -1284,23 +1284,6 @@ if st.session_state.show_filters:
 
     st.markdown('<div class="filter-content">', unsafe_allow_html=True)
 
-    col1, col2 = st.columns(2)
-    with col1:
-        st.session_state.filter_phone = st.text_input(
-            "📱 Phone Number",
-            value=st.session_state.filter_phone,
-            placeholder="Search by phone...",
-            key="filter_phone_input"
-        )
-
-    with col2:
-        st.session_state.filter_name = st.text_input(
-            "👤 Client Name",
-            value=st.session_state.filter_name,
-            placeholder="Search by name...",
-            key="filter_name_input"
-        )
-
     st.session_state.filter_by_date = st.checkbox(
         "📅 Enable date filter",
         value=st.session_state.filter_by_date,
